@@ -1,0 +1,62 @@
+# EditorConfig — convenciones de estilo compartidas (Claude Code, GitHub Copilot y el equipo)
+# https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,jsonc,yml,yaml,md,csproj,props,targets}]
+indent_size = 2
+
+[*.{ts,tsx,js,jsx,css}]
+indent_size = 2
+
+# ----------------------------------------------------------------------------
+# Reglas de estilo C# (alineadas con el SAD y los CLAUDE.md por capa)
+# ----------------------------------------------------------------------------
+[*.cs]
+# Organización de usings
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Preferencias de lenguaje
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = true:suggestion
+dotnet_style_require_accessibility_modifiers = always:warning
+
+# Tipos explícitos por defecto; `var` sólo en excepciones reales (IDE0008).
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = false:warning
+csharp_style_var_elsewhere = false:warning
+
+# Nullable y calidad
+dotnet_diagnostic.CS8618.severity = error   # campo no-nullable sin inicializar
+dotnet_diagnostic.CS8602.severity = error   # posible desreferencia de null
+
+# Convenciones de nombres: interfaces con prefijo I
+dotnet_naming_rule.interfaces_should_be_prefixed_with_i.severity = warning
+dotnet_naming_rule.interfaces_should_be_prefixed_with_i.symbols = interface_symbol
+dotnet_naming_rule.interfaces_should_be_prefixed_with_i.style = prefix_i_style
+dotnet_naming_symbols.interface_symbol.applicable_kinds = interface
+dotnet_naming_style.prefix_i_style.required_prefix = I
+dotnet_naming_style.prefix_i_style.capitalization = pascal_case
+
+# ----------------------------------------------------------------------------
+# Clean Code / organización de archivos
+# (estándar completo: docs/architecture/coding-standards.md)
+# ----------------------------------------------------------------------------
+# Un solo tipo por archivo y nombre de archivo = tipo. El enforcement automático
+# requiere StyleCop.Analyzers; al añadirlo, descomentar:
+# dotnet_diagnostic.SA1402.severity = warning   # File may only contain a single type
+# dotnet_diagnostic.SA1649.severity = warning   # File name should match first type name
+
+# Señales de Clean Code vía analizadores de .NET (subir severidad)
+dotnet_diagnostic.CA1822.severity = suggestion   # marcar miembros como static cuando aplica
+dotnet_diagnostic.IDE0059.severity = warning     # asignación de valor innecesaria
+dotnet_diagnostic.IDE0060.severity = warning     # parámetro no usado
+dotnet_diagnostic.CA2007.severity = none         # no exigir ConfigureAwait en la app
