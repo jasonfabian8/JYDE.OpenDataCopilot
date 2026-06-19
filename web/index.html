@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenData Copilot — Pregúntale a los datos abiertos de Colombia</title>
+    <meta
+      name="description"
+      content="Copiloto conversacional sobre los datos abiertos de Colombia (datos.gov.co). Pregunta en lenguaje natural; descubre el dataset, lo consulta y responde citando la fuente oficial."
+    />
+
+    <!-- Open Graph (para compartir el sitio público) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="OpenData Copilot" />
+    <meta
+      property="og:description"
+      content="Pregúntale a los datos abiertos de Colombia en lenguaje natural. Respuestas con fuente citada."
+    />
+    <meta property="og:locale" content="es_CO" />
+
+    <!-- Tipografías: serif editorial + grotesca + monoespaciada técnica.
+         SRI no aplica: el CSS de Google Fonts varía por navegador y no expone un
+         hash estable. Hotspot revisado y aceptado (CDN confiable). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
