@@ -1,0 +1,48 @@
+<Project>
+
+  <!-- Configuración común a TODOS los proyectos de la solución.
+       Centraliza versión de lenguaje, nullable, warnings-as-errors y metadatos. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Documentación XML OBLIGATORIA en todo el código (miembros públicos). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- TEMPORAL (Fase 0): se suprime CS1591 (comentario XML faltante) sólo mientras se monta el
+         esqueleto. RETIRAR esta línea cuando los miembros públicos estén documentados, para que
+         warnings-as-errors vuelva a exigir documentación en todo el código. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Metadatos del proyecto -->
+    <Company>JYDE</Company>
+    <Product>OpenData Copilot</Product>
+    <Authors>Equipo OpenData Copilot</Authors>
+    <NeutralLanguage>es-CO</NeutralLanguage>
+  </PropertyGroup>
+
+  <!-- ==========================================================================
+       Cobertura de pruebas (coverlet) — política: >= 95% por proyecto.
+       Sólo se evalúa al recolectar cobertura (CollectCoverage=true), p. ej.:
+         dotnet test /p:CollectCoverage=true
+       El `dotnet test` normal NO falla por esto; el umbral se exige en CI / al medir.
+       Aplica únicamente a los proyectos de prueba (nombre que termina en "Tests").
+       ========================================================================== -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <CollectCoverage Condition="'$(CollectCoverage)' == ''">false</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <Threshold>95</Threshold>
+    <ThresholdType>line,branch,method</ThresholdType>
+    <ThresholdStat>total</ThresholdStat>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <PackageReference Include="coverlet.msbuild" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
