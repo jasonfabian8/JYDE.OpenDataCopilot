@@ -40,6 +40,7 @@
 | [0005](../adr/0005-estrategia-datos-hibrida.md) | Datos híbridos: metadatos amplios + cache selectivo |
 | [0006](../adr/0006-tdd-por-convencion.md) | TDD por convención (sin hooks de enforcement) |
 | [0007](../adr/0007-estandar-clean-code-solid.md) | Estándar de codificación: Clean Code, SOLID, un tipo por archivo |
+| [0008](../adr/0008-stack-frontend-vite-zustand.md) | Frontend: base con Vite y Zustand (y gobierno de librerías) |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).
@@ -240,7 +241,57 @@ un proveedor nuevo = nuevo adaptador + una rama de registro, **sin tocar dominio
 
 ---
 
-## 11. Despliegue (objetivo)
+## 11. Arquitectura del Frontend (React + Vite)
+
+SPA que consume la API REST (ver [ADR-0001](../adr/0001-stack-dotnet-hexagonal-ddd.md)). Aplica los mismos valores de calidad que el backend: tipado fuerte, separación de responsabilidades, código
+testeable y consistente. El estándar de [`coding-standards.md`](coding-standards.md) (nombres, funciones pequeñas, un componente por archivo, DRY/KISS/YAGNI) aplica también aquí.
+
+### Stack (ver [ADR-0008](../adr/0008-stack-frontend-vite-zustand.md))
+
+**Decidido:**
+- **React + TypeScript** (`strict`) — garantías de tipos análogas a las del backend.
+- **Vite** — herramienta de build y servidor de desarrollo.
+- **Zustand** — manejo de estado de la aplicación (ligero, tipado, desacoplado).
+- **Streaming:** consumo de **SSE** para mostrar la respuesta del chat token a token (es parte del
+  contrato con el backend, no una librería).
+
+**Pendiente por concertar** (se decidirá y registrará en SAD + ADR al abordarse): estilos/UI, obtención y cache de datos del servidor, gráficos/visualización, framework de pruebas, i18n.
+
+> **Gobierno de librerías:** toda nueva dependencia (frontend o backend) se **concierta con el
+> equipo** y se registra **actualizando este SAD y un ADR** antes de adoptarse. No se introducen
+> librerías de facto.
+
+### Organización (feature-based, separación de responsabilidades)
+```
+web/
+├── src/
+│   ├── app/            # bootstrap, providers, routing
+│   ├── features/       # por dominio de UI
+│   │   ├── chat/       # componentes, hooks y modelo de la conversación
+│   │   └── datasets/   # exploración/visualización de datasets y fuentes
+│   ├── shared/
+│   │   ├── api/        # cliente HTTP tipado + tipos del contrato de la API
+│   │   ├── ui/         # componentes reutilizables (design system)
+│   │   └── lib/        # utilidades
+│   └── styles/
+└── ...
+```
+
+- **Capa `shared/api`** = frontera con el backend: un cliente tipado que aísla `fetch`/SSE y mapea errores; los componentes nunca llaman a la red directamente (analogía a los puertos del backend).
+- Componentes de presentación desacoplados de la obtención de datos (hooks de datos vía TanStack Query). Un componente/módulo por archivo.
+
+### Calidad y pruebas
+- **TypeScript `strict`** (decidido). Linter/formatter y framework de pruebas: **pendientes por concertar** (candidatos: ESLint + Prettier, Vitest + React Testing Library), a registrar en SAD+ADR.
+- Pruebas centradas en la conducta del usuario; un componente/módulo por archivo.
+- **Accesibilidad** (roles/ARIA, navegación por teclado) y diseño responsivo como requisitos.
+
+### Contrato Frontend ↔ Backend
+- Comunicación JSON/REST + **SSE** para el chat. Los tipos del cliente reflejan los DTOs de la API.
+- Toda respuesta del chat muestra **la fuente citada** (dataset + enlace), reflejando el guardrail del backend.
+
+---
+
+## 12. Despliegue (objetivo)
 
 - **Desarrollo:** todo local — `docker compose up` (Postgres/pgvector, Qdrant) + `dotnet run` + Vite.
 - **Producción:** Azure Container Apps / App Service (API), Azure Static Web Apps (web),
