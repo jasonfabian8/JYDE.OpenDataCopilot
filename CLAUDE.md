@@ -46,8 +46,9 @@ Cada capa tiene su propio `CLAUDE.md` con reglas específicas. Léelo antes de e
 - Interfaces (puertos) con prefijo `I`. Un puerto pequeño y orientado al caso de uso.
 - Nombres de dominio en el **lenguaje ubicuo** (ver glosario en el SAD): `Dataset`, `Catalog`,
   `Query`, etc.
-- **Documentación XML obligatoria** en todo el código (`GenerateDocumentationFile`): cada tipo y
-  miembro público lleva su comentario `/// <summary>`. CS1591 está suprimido **sólo temporalmente** durante la Fase 0; al documentar el esqueleto se retira de `Directory.Build.props`.
+- **Documentación XML obligatoria** en el código de producción (`GenerateDocumentationFile` +
+  `TreatWarningsAsErrors`): cada tipo y miembro público lleva su `/// <summary>` (CS1591 se trata
+  como error). Los proyectos de prueba (`*Tests`) están exentos.
 - `TreatWarningsAsErrors` está activo: mantén el build limpio.
 
 ## Estructura de carpetas

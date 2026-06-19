@@ -11,11 +11,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!-- Documentación XML OBLIGATORIA en todo el código (miembros públicos). -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- TEMPORAL (Fase 0): se suprime CS1591 (comentario XML faltante) sólo mientras se monta el
-         esqueleto. RETIRAR esta línea cuando los miembros públicos estén documentados, para que
-         warnings-as-errors vuelva a exigir documentación en todo el código. -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-
+  
     <!-- Metadatos del proyecto -->
     <Company>JYDE</Company>
     <Product>OpenData Copilot</Product>
@@ -31,6 +27,8 @@
        Aplica únicamente a los proyectos de prueba (nombre que termina en "Tests").
        ========================================================================== -->
   <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
+    <!-- Los proyectos de prueba no son librerías documentables: no exigir comentario XML en ellos. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <CollectCoverage Condition="'$(CollectCoverage)' == ''">false</CollectCoverage>
     <CoverletOutputFormat>cobertura</CoverletOutputFormat>
     <Threshold>95</Threshold>

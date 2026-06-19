@@ -27,7 +27,7 @@ dotnet_separate_import_directive_groups = false
 # Preferencias de lenguaje
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_prefer_braces = true:suggestion
-dotnet_style_require_accessibility_modifiers = always:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
 
 # Tipos explícitos por defecto; `var` sólo en excepciones reales (IDE0008).
 csharp_style_var_for_built_in_types = false:warning
