@@ -9,7 +9,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <!-- Documentación XML OBLIGATORIA en todo el código (miembros públicos). -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   
     <!-- Metadatos del proyecto -->
@@ -34,6 +33,8 @@
     <Threshold>95</Threshold>
     <ThresholdType>line,branch,method</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
+    <!-- Excluir de la cobertura el código generado (p. ej. source-gen de [GeneratedRegex]). -->
+    <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
   </PropertyGroup>
 
   <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">

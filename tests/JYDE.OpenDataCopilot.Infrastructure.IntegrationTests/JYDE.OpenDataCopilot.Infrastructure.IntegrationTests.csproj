@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- La cobertura de este proyecto mide únicamente su capa de producción. -->
+    <Include>[JYDE.OpenDataCopilot.Infrastructure]*</Include>
   </PropertyGroup>
 
   <ItemGroup>
