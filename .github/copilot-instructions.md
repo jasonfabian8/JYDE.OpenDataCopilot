@@ -25,6 +25,9 @@ Regla de dependencias **sólo hacia adentro**: `Api → Infrastructure → Appli
 4. Datos sólo vía **API de Socrata** (catálogo + SoQL); **sin web scraping**.
 5. Respuestas **citadas**; si los datos no soportan la respuesta, declararlo; **no inventar cifras**.
 6. **TDD por convención** (xUnit + Shouldly); preferir test primero en Domain/Application.
+7. **Gobierno de librerías:** no introducir una dependencia nueva (frontend o backend) sin acuerdo
+   del equipo; registrar toda adopción **actualizando el SAD y un ADR**. Base de frontend decidida:
+   React + Vite + Zustand ([ADR-0008](../docs/adr/0008-stack-frontend-vite-zustand.md)).
 
 ## Convenciones de código C#
 
