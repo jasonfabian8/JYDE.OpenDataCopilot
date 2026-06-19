@@ -6,6 +6,7 @@
     <Project Path="src/JYDE.OpenDataCopilot.Infrastructure/JYDE.OpenDataCopilot.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/JYDE.OpenDataCopilot.Api.Tests/JYDE.OpenDataCopilot.Api.Tests.csproj" />
     <Project Path="tests/JYDE.OpenDataCopilot.Application.Tests/JYDE.OpenDataCopilot.Application.Tests.csproj" />
     <Project Path="tests/JYDE.OpenDataCopilot.Domain.Tests/JYDE.OpenDataCopilot.Domain.Tests.csproj" />
     <Project Path="tests/JYDE.OpenDataCopilot.Infrastructure.IntegrationTests/JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.csproj" />
