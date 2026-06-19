@@ -8,6 +8,8 @@
 
 Ya no es necesario buscar archivos, descargar hojas de cálculo o interpretar estructuras complejas. Solo pregunta.
 
+![Landing de OpenData Copilot: titular editorial "Pregúntale a los datos abiertos de Colombia" junto a una consola que muestra el flujo pregunta → consulta SoQL → respuesta citando la fuente.](docs/images/landing-preview.png)
+
 ---
 
 ## 💡 El problema

@@ -5,6 +5,10 @@ abiertos de Colombia (`datos.gov.co`). Comunica el objetivo del producto —preg
 lenguaje natural y recibir respuestas **citando la fuente**— con un diseño editorial
 orientado al uso técnico.
 
+## Vista previa
+
+![Landing de OpenData Copilot: titular editorial "Pregúntale a los datos abiertos de Colombia" junto a una consola de demostración que muestra el flujo pregunta → consulta SoQL → respuesta citada.](../docs/images/landing-preview.png)
+
 ## Stack
 
 - **Vite + React + TypeScript** (`strict`) — ver [ADR-0008](../docs/adr/0008-stack-frontend-vite-zustand.md).
