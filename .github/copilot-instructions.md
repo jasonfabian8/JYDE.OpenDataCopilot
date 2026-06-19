@@ -28,6 +28,9 @@ Regla de dependencias **sólo hacia adentro**: `Api → Infrastructure → Appli
 7. **Gobierno de librerías:** no introducir una dependencia nueva (frontend o backend) sin acuerdo
    del equipo; registrar toda adopción **actualizando el SAD y un ADR**. Base de frontend decidida:
    React + Vite + Zustand ([ADR-0008](../docs/adr/0008-stack-frontend-vite-zustand.md)).
+8. **API con controladores MVC, NO Minimal API** ([ADR-0010](../docs/adr/0010-api-con-controladores.md)):
+   exposición HTTP en `ControllerBase` + `[ApiController]`; `Program.cs` sólo compone
+   (`AddControllers`/`MapControllers`). Nada de `app.MapGet/MapPost/...`.
 
 ## Convenciones de código C#
 

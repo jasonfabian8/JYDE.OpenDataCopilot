@@ -9,8 +9,8 @@ Composition root + capa de presentación HTTP. Ver gobierno global en
 - **Composición DI por configuración:** registra el adaptador de cada puerto según
   `appsettings → Providers` (`SearchIndex`, `DatasetCache`, `Chat`, `Embeddings`).
   Ver [ADR-0003](../../docs/adr/0003-ports-adapters-intercambiables.md).
-- Endpoints delgados: validan entrada, llaman a un caso de uso de Application y mapean el
-  resultado a HTTP. **Sin lógica de negocio aquí.**
+- **Controladores MVC, no Minimal API** ([ADR-0010](../../docs/adr/0010-api-con-controladores.md)): todo endpoint va en un `ControllerBase` con `[ApiController]` y *attribute routing*. `Program.cs` sólo compone (`AddControllers`/`MapControllers`); nada de `app.MapGet/MapPost/...`.
+- Controladores delgados: validan entrada, llaman a un caso de uso de Application y mapean el resultado a HTTP. **Sin lógica de negocio aquí.**
 - Soporta streaming (SSE) para respuestas de chat en vivo.
 - **No** acceder directamente a SDKs externos: siempre a través de los puertos/casos de uso.
 - **Documentación XML** en tipos y miembros públicos.

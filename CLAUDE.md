@@ -34,6 +34,7 @@ Cada capa tiene su propio `CLAUDE.md` con reglas específicas. Léelo antes de e
 5. **Respuestas citadas.** Toda respuesta basada en datos incluye su fuente. Si los datos no soportan la respuesta, decláralo; **no inventes cifras**.
 6. **TDD por convención** ([ADR-0006](docs/adr/0006-tdd-por-convencion.md)): preferir test primero en Domain/Application. xUnit + Shouldly. No hay hooks que lo fuercen.
 7. **Cobertura ≥ 95% por proyecto.** Umbral configurado con coverlet (líneas/ramas/métodos); se verifica al recolectar cobertura y en CI. Mídela con `dotnet test /p:CollectCoverage=true`.
+8. **API con controladores MVC, NO Minimal API** ([ADR-0010](docs/adr/0010-api-con-controladores.md)): toda la exposición HTTP va en `ControllerBase` + `[ApiController]`. `Program.cs` sólo compone (`AddControllers`/`MapControllers`). Nada de `app.MapGet/MapPost/...`.
 
 ## Convenciones de código
 

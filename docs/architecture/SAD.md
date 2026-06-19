@@ -42,6 +42,7 @@
 | [0007](../adr/0007-estandar-clean-code-solid.md) | Estándar de codificación: Clean Code, SOLID, un tipo por archivo |
 | [0008](../adr/0008-stack-frontend-vite-zustand.md) | Frontend: base con Vite y Zustand (y gobierno de librerías) |
 | [0009](../adr/0009-estilos-tailwind.md) | Estilos/UI del frontend: Tailwind CSS |
+| [0010](../adr/0010-api-con-controladores.md) | API con controladores MVC (no Minimal API) |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).
@@ -66,7 +67,8 @@ Api ──► Infrastructure ──► Application ──► Domain
 - **Domain**: entidades, value objects, agregados, reglas de negocio puras. **Cero** dependencias externas.
 - **Application**: casos de uso, orquestación, **define los puertos** (interfaces) y DTOs.
 - **Infrastructure**: **adaptadores** que implementan los puertos (Socrata, Foundry, índices, cache).
-- **Api**: ASP.NET Core, endpoints, DI/composición, configuración.
+- **Api**: ASP.NET Core con **controladores MVC** (no Minimal API, ver
+  [ADR-0010](../adr/0010-api-con-controladores.md)), DI/composición, configuración.
 
 ### Lenguaje ubicuo (glosario mínimo)
 - **Dataset**: conjunto de datos publicado en `datos.gov.co` (con metadatos y datos consultables).
