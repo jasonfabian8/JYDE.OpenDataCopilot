@@ -13,3 +13,4 @@ Registro vivo de las decisiones de arquitectura. Una decisión = un archivo nume
 | [0006](0006-tdd-por-convencion.md) | TDD por convención | Aceptado |
 | [0007](0007-estandar-clean-code-solid.md) | Estándar de codificación: Clean Code, SOLID, un tipo por archivo | Aceptado |
 | [0008](0008-stack-frontend-vite-zustand.md) | Frontend: base con Vite y Zustand (y gobierno de librerías) | Aceptado |
+| [0009](0009-estilos-tailwind.md) | Estilos/UI del frontend: Tailwind CSS | Aceptado |

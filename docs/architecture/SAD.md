@@ -41,6 +41,7 @@
 | [0006](../adr/0006-tdd-por-convencion.md) | TDD por convención (sin hooks de enforcement) |
 | [0007](../adr/0007-estandar-clean-code-solid.md) | Estándar de codificación: Clean Code, SOLID, un tipo por archivo |
 | [0008](../adr/0008-stack-frontend-vite-zustand.md) | Frontend: base con Vite y Zustand (y gobierno de librerías) |
+| [0009](../adr/0009-estilos-tailwind.md) | Estilos/UI del frontend: Tailwind CSS |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).
@@ -252,10 +253,11 @@ testeable y consistente. El estándar de [`coding-standards.md`](coding-standard
 - **React + TypeScript** (`strict`) — garantías de tipos análogas a las del backend.
 - **Vite** — herramienta de build y servidor de desarrollo.
 - **Zustand** — manejo de estado de la aplicación (ligero, tipado, desacoplado).
+- **Tailwind CSS** — sistema de estilos con *design tokens* e integración Vite ([ADR-0009](../adr/0009-estilos-tailwind.md)); los componentes propios viven en `shared/ui`.
 - **Streaming:** consumo de **SSE** para mostrar la respuesta del chat token a token (es parte del
   contrato con el backend, no una librería).
 
-**Pendiente por concertar** (se decidirá y registrará en SAD + ADR al abordarse): estilos/UI, obtención y cache de datos del servidor, gráficos/visualización, framework de pruebas, i18n.
+**Pendiente por concertar** (se decidirá y registrará en SAD + ADR al abordarse): obtención y cache de datos del servidor, gráficos/visualización, framework de pruebas, i18n, y (si se requiere) una librería de primitivas accesibles sobre Tailwind.
 
 > **Gobierno de librerías:** toda nueva dependencia (frontend o backend) se **concierta con el
 > equipo** y se registra **actualizando este SAD y un ADR** antes de adoptarse. No se introducen
@@ -278,7 +280,7 @@ web/
 ```
 
 - **Capa `shared/api`** = frontera con el backend: un cliente tipado que aísla `fetch`/SSE y mapea errores; los componentes nunca llaman a la red directamente (analogía a los puertos del backend).
-- Componentes de presentación desacoplados de la obtención de datos (hooks de datos vía TanStack Query). Un componente/módulo por archivo.
+- Componentes de presentación desacoplados de la obtención de datos (hooks de datos; la librería de data-fetching/cache está pendiente de concertar). Un componente/módulo por archivo.
 
 ### Calidad y pruebas
 - **TypeScript `strict`** (decidido). Linter/formatter y framework de pruebas: **pendientes por concertar** (candidatos: ESLint + Prettier, Vitest + React Testing Library), a registrar en SAD+ADR.
