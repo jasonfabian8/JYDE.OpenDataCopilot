@@ -43,6 +43,7 @@
 | [0008](../adr/0008-stack-frontend-vite-zustand.md) | Frontend: base con Vite y Zustand (y gobierno de librerías) |
 | [0009](../adr/0009-estilos-tailwind.md) | Estilos/UI del frontend: Tailwind CSS |
 | [0010](../adr/0010-api-con-controladores.md) | API con controladores MVC (no Minimal API) |
+| [0011](../adr/0011-api-no-referencia-dominio.md) | La API no referencia el Domain; consume DTOs de Application |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).

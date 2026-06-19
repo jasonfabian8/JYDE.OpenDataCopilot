@@ -31,6 +31,9 @@ Regla de dependencias **sólo hacia adentro**: `Api → Infrastructure → Appli
 8. **API con controladores MVC, NO Minimal API** ([ADR-0010](../docs/adr/0010-api-con-controladores.md)):
    exposición HTTP en `ControllerBase` + `[ApiController]`; `Program.cs` sólo compone
    (`AddControllers`/`MapControllers`). Nada de `app.MapGet/MapPost/...`.
+9. **La API NO referencia el `Domain`** ([ADR-0011](../docs/adr/0011-api-no-referencia-dominio.md)):
+   controladores dependen sólo de casos de uso y **DTOs de Application** (o modelos de request
+   propios); no construyen entidades/VOs de dominio ni llaman puertos de salida directamente.
 
 ## Convenciones de código C#
 
