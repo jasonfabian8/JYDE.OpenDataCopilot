@@ -1,0 +1,69 @@
+using System.Diagnostics.CodeAnalysis;
+using JYDE.OpenDataCopilot.Application.Catalog;
+using JYDE.OpenDataCopilot.Domain.Catalog;
+using MongoDB.Driver;
+
+namespace JYDE.OpenDataCopilot.Infrastructure.Mongo;
+
+/// <summary>
+/// Adaptador de <see cref="ICatalogRepository"/> sobre MongoDB (Atlas). Persiste los metadatos del
+/// catálogo. Es un adaptador de E/S externa: se excluye de la cobertura unitaria y se valida con
+/// pruebas e2e/integración contra el clúster real (el mapeo se prueba en <see cref="DatasetDocument"/>).
+/// </summary>
+[ExcludeFromCodeCoverage]
+public sealed class MongoCatalogRepository : ICatalogRepository
+{
+    private readonly IMongoCollection<DatasetDocument> _collection;
+
+    /// <summary>Crea el repositorio Mongo a partir de las opciones de conexión.</summary>
+    /// <param name="options">Opciones de conexión (cadena, base de datos, colección).</param>
+    /// <exception cref="ArgumentNullException">Si <paramref name="options"/> es nulo.</exception>
+    public MongoCatalogRepository(MongoOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        IMongoClient client = new MongoClient(options.ConnectionString);
+        IMongoDatabase database = client.GetDatabase(options.Database);
+        _collection = database.GetCollection<DatasetDocument>(options.CatalogCollection);
+    }
+
+    /// <inheritdoc />
+    public async Task SaveAsync(IReadOnlyCollection<Dataset> datasets, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(datasets);
+        if (datasets.Count == 0)
+        {
+            return;
+        }
+
+        List<WriteModel<DatasetDocument>> writes = [];
+        foreach (Dataset dataset in datasets)
+        {
+            DatasetDocument document = DatasetDocument.FromDomain(dataset);
+            FilterDefinition<DatasetDocument> filter =
+                Builders<DatasetDocument>.Filter.Eq(existing => existing.Id, document.Id);
+            writes.Add(new ReplaceOneModel<DatasetDocument>(filter, document) { IsUpsert = true });
+        }
+
+        await _collection.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = false }, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<Dataset?> GetByIdAsync(DatasetId id, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        IAsyncCursor<DatasetDocument> cursor = await _collection.FindAsync(
+            document => document.Id == id.Value,
+            cancellationToken: cancellationToken);
+        DatasetDocument? found = await cursor.FirstOrDefaultAsync(cancellationToken);
+        return found?.ToDomain();
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        long count = await _collection.CountDocumentsAsync(
+            FilterDefinition<DatasetDocument>.Empty,
+            cancellationToken: cancellationToken);
+        return (int)count;
+    }
+}

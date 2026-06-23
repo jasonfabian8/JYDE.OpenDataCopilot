@@ -44,6 +44,7 @@
 | [0009](../adr/0009-estilos-tailwind.md) | Estilos/UI del frontend: Tailwind CSS |
 | [0010](../adr/0010-api-con-controladores.md) | API con controladores MVC (no Minimal API) |
 | [0011](../adr/0011-api-no-referencia-dominio.md) | La API no referencia el Domain; consume DTOs de Application |
+| [0012](../adr/0012-persistencia-mongodb-atlas.md) | Persistencia con MongoDB Atlas (driver y almacén del catálogo) |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).
@@ -87,7 +88,7 @@ Api ──► Infrastructure ──► Application ──► Domain
 
 | Contexto | Responsabilidad | Puertos principales | Adaptadores |
 |----------|-----------------|---------------------|-------------|
-| **Catalog** | Ingestar/almacenar metadatos del catálogo | `ICatalogSource`, `ICatalogRepository` | `SocrataCatalogClient` |
+| **Catalog** | Ingestar/almacenar metadatos del catálogo | `ICatalogSource`, `ICatalogRepository` | `SocrataCatalogClient`; `InMemory`/`Mongo` (repositorio) |
 | **Search** | Indexar y recuperar datasets (vector + keyword) | `IDatasetSearchIndex`, `IEmbeddingGenerator` | `PgVector`/`AzureAISearch`/`Qdrant`, `FoundryEmbeddings` |
 | **Conversation** | Orquestar pregunta → respuesta citada | `IChatCompletion`, `IDataQuery`, `IConversationStore` | `FoundryChatCompletion`, `SocrataDataQuery` |
 | **DataCache** | Cachear datasets seleccionados | `IDatasetCache` | `DuckDb`/`Postgres` (local), `MongoAtlas` (prod) |

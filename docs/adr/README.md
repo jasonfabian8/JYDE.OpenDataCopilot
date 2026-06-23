@@ -16,3 +16,4 @@ Registro vivo de las decisiones de arquitectura. Una decisión = un archivo nume
 | [0009](0009-estilos-tailwind.md) | Estilos/UI del frontend: Tailwind CSS | Aceptado |
 | [0010](0010-api-con-controladores.md) | API con controladores MVC (no Minimal API) | Aceptado |
 | [0011](0011-api-no-referencia-dominio.md) | La API no referencia el Domain; consume DTOs de Application | Aceptado |
+| [0012](0012-persistencia-mongodb-atlas.md) | Persistencia con MongoDB Atlas (driver y almacén del catálogo) | Aceptado |
