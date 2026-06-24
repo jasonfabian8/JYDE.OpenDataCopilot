@@ -97,9 +97,15 @@ public sealed class SocrataCatalogClient : ICatalogSource
 
     private Uri BuildRequestUri(CatalogFilter filter, int offset, int limit)
     {
+        // Acota la búsqueda al dominio configurado (p. ej. www.datos.gov.co); sin esto, la API de
+        // catálogo de Socrata federa datasets de toda su red (NYC, Chicago, etc.).
+        string domain = _options.BaseAddress.Host;
+
         List<string> query =
         [
             "only=dataset",
+            $"domains={Uri.EscapeDataString(domain)}",
+            $"search_context={Uri.EscapeDataString(domain)}",
             $"offset={offset}",
             $"limit={limit}",
         ];

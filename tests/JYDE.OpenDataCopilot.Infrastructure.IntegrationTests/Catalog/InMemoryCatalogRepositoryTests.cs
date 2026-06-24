@@ -52,6 +52,21 @@ public sealed class InMemoryCatalogRepositoryTests
     }
 
     [Fact]
+    public async Task GetAllAsync_DevuelveTodosLosDatasets()
+    {
+        InMemoryCatalogRepository repository = new();
+        await repository.SaveAsync([Sample("aaaa-0001"), Sample("aaaa-0002")]);
+
+        List<string> ids = [];
+        await foreach (Dataset dataset in repository.GetAllAsync())
+        {
+            ids.Add(dataset.Id.Value);
+        }
+
+        ids.ShouldBe(["aaaa-0001", "aaaa-0002"], ignoreOrder: true);
+    }
+
+    [Fact]
     public async Task Metodos_ConArgumentosNulos_Lanzan()
     {
         InMemoryCatalogRepository repository = new();

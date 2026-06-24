@@ -161,6 +161,18 @@ public sealed class SocrataCatalogClientTests
     }
 
     [Fact]
+    public async Task FetchAsync_AcotaAlDominioConfigurado()
+    {
+        FakeHttpMessageHandler handler = new(ResponseJson(1, ResultJson("aaaa-0001", "Uno")));
+        SocrataCatalogClient client = CreateClient(handler);
+
+        await CollectAsync(client, CatalogFilter.All);
+
+        handler.Requests[0].Query.ShouldContain("domains=www.datos.gov.co");
+        handler.Requests[0].Query.ShouldContain("search_context=www.datos.gov.co");
+    }
+
+    [Fact]
     public async Task FetchAsync_MapeaColumnasConArreglosFaltantes_UsaValoresPorDefecto()
     {
         string body = """

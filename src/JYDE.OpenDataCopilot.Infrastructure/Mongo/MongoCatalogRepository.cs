@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using JYDE.OpenDataCopilot.Application.Catalog;
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using MongoDB.Driver;
@@ -65,5 +66,21 @@ public sealed class MongoCatalogRepository : ICatalogRepository
             FilterDefinition<DatasetDocument>.Empty,
             cancellationToken: cancellationToken);
         return (int)count;
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<Dataset> GetAllAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using IAsyncCursor<DatasetDocument> cursor = await _collection.FindAsync(
+            FilterDefinition<DatasetDocument>.Empty,
+            cancellationToken: cancellationToken);
+
+        while (await cursor.MoveNextAsync(cancellationToken))
+        {
+            foreach (DatasetDocument document in cursor.Current)
+            {
+                yield return document.ToDomain();
+            }
+        }
     }
 }

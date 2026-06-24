@@ -1,6 +1,9 @@
 using JYDE.OpenDataCopilot.Application.Catalog;
+using JYDE.OpenDataCopilot.Application.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Catalog;
+using JYDE.OpenDataCopilot.Infrastructure.Embeddings;
 using JYDE.OpenDataCopilot.Infrastructure.Mongo;
+using JYDE.OpenDataCopilot.Infrastructure.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Socrata;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -33,6 +36,13 @@ else
 
 builder.Services.AddTransient<IngestCatalogService>();
 builder.Services.AddTransient<CatalogQueryService>();
+
+// Search: embeddings + índice. Por ahora adaptadores locales (dev/$0); Foundry y Atlas Vector
+// Search se añadirán como adaptadores adicionales seleccionables por configuración.
+builder.Services.AddSingleton<IEmbeddingGenerator>(_ => new LocalHashingEmbeddingGenerator());
+builder.Services.AddSingleton<IDatasetSearchIndex, InMemorySearchIndex>();
+builder.Services.AddTransient<IndexCatalogService>();
+builder.Services.AddTransient<SearchDatasetsService>();
 
 WebApplication app = builder.Build();
 

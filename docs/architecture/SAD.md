@@ -45,6 +45,7 @@
 | [0010](../adr/0010-api-con-controladores.md) | API con controladores MVC (no Minimal API) |
 | [0011](../adr/0011-api-no-referencia-dominio.md) | La API no referencia el Domain; consume DTOs de Application |
 | [0012](../adr/0012-persistencia-mongodb-atlas.md) | Persistencia con MongoDB Atlas (driver y almacén del catálogo) |
+| [0013](../adr/0013-embeddings-foundry-y-local-dev.md) | Embeddings: Foundry (objetivo) + adaptador local para dev |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).
