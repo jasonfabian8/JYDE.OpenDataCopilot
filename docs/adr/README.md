@@ -18,3 +18,4 @@ Registro vivo de las decisiones de arquitectura. Una decisión = un archivo nume
 | [0011](0011-api-no-referencia-dominio.md) | La API no referencia el Domain; consume DTOs de Application | Aceptado |
 | [0012](0012-persistencia-mongodb-atlas.md) | Persistencia con MongoDB Atlas (driver y almacén del catálogo) | Aceptado |
 | [0013](0013-embeddings-foundry-y-local-dev.md) | Embeddings: Foundry (objetivo) + adaptador local para dev | Aceptado |
+| [0014](0014-atlas-vector-search.md) | Índice de búsqueda con MongoDB Atlas Vector Search | Aceptado |

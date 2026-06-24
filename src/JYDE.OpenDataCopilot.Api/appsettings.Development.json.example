@@ -1,7 +1,8 @@
 {
   "// NOTA": "Copia este archivo como appsettings.Development.json (gitignored) y pon tu cadena real. NO commitees secretos.",
   "Providers": {
-    "CatalogRepository": "Mongo"
+    "CatalogRepository": "Mongo",
+    "SearchIndex": "Mongo"
   },
   "Mongo": {
     "ConnectionString": "mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/?appName=<app>",
