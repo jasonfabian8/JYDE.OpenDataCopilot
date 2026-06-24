@@ -17,7 +17,7 @@ public sealed class SearchDatasetsServiceTests
         };
         SearchDatasetsService service = new(embeddings, index);
 
-        IReadOnlyList<DatasetSearchHit> hits = await service.ExecuteAsync("accidentalidad vial", topK: 3);
+        IReadOnlyList<DatasetSearchHit> hits = await service.ExecuteAsync("accidentalidad vial", topK: 3, cancellationToken: TestContext.Current.CancellationToken);
 
         hits.ShouldHaveSingleItem().Id.ShouldBe("aaaa-0001");
         embeddings.LastText.ShouldBe("accidentalidad vial");

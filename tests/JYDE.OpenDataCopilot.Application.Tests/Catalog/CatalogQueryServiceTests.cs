@@ -19,10 +19,10 @@ public sealed class CatalogQueryServiceTests
             tags: ["movilidad"],
             columns: [new DatasetColumn("Municipio", "municipio", "text", "Nombre")],
             sourceUrl: new Uri("https://www.datos.gov.co/d/ddau-8cy9"));
-        await repository.SaveAsync([dataset]);
+        await repository.SaveAsync([dataset], TestContext.Current.CancellationToken);
         CatalogQueryService service = new(repository);
 
-        DatasetDto? dto = await service.GetByIdAsync("ddau-8cy9");
+        DatasetDto? dto = await service.GetByIdAsync("ddau-8cy9", TestContext.Current.CancellationToken);
 
         dto.ShouldNotBeNull();
         dto.Id.ShouldBe("ddau-8cy9");
@@ -39,10 +39,10 @@ public sealed class CatalogQueryServiceTests
     public async Task GetByIdAsync_DatasetMinimo_MapeaConValoresNulos()
     {
         InMemoryCatalogRepository repository = new();
-        await repository.SaveAsync([new Dataset(new DatasetId("aaaa-0001"), "Mínimo")]);
+        await repository.SaveAsync([new Dataset(new DatasetId("aaaa-0001"), "Mínimo")], TestContext.Current.CancellationToken);
         CatalogQueryService service = new(repository);
 
-        DatasetDto dto = (await service.GetByIdAsync("aaaa-0001")).ShouldNotBeNull();
+        DatasetDto dto = (await service.GetByIdAsync("aaaa-0001", TestContext.Current.CancellationToken)).ShouldNotBeNull();
 
         dto.SourceUrl.ShouldBeNull();
         dto.Description.ShouldBeNull();
@@ -54,7 +54,7 @@ public sealed class CatalogQueryServiceTests
     {
         CatalogQueryService service = new(new InMemoryCatalogRepository());
 
-        (await service.GetByIdAsync("zzzz-9999")).ShouldBeNull();
+        (await service.GetByIdAsync("zzzz-9999", TestContext.Current.CancellationToken)).ShouldBeNull();
     }
 
     [Fact]
@@ -69,10 +69,10 @@ public sealed class CatalogQueryServiceTests
     public async Task CountAsync_DevuelveConteo()
     {
         InMemoryCatalogRepository repository = new();
-        await repository.SaveAsync([new Dataset(new DatasetId("aaaa-0001"), "Uno")]);
+        await repository.SaveAsync([new Dataset(new DatasetId("aaaa-0001"), "Uno")], TestContext.Current.CancellationToken);
         CatalogQueryService service = new(repository);
 
-        (await service.CountAsync()).ShouldBe(1);
+        (await service.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(1);
     }
 
     [Fact]

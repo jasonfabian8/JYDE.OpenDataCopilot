@@ -21,12 +21,12 @@ public sealed class IndexCatalogServiceTests
     public async Task ExecuteAsync_IndexaTodosLosDatasets_YDevuelveConteo()
     {
         InMemoryCatalogRepository repository = new();
-        await repository.SaveAsync([Full("aaaa-0001"), new Dataset(new DatasetId("aaaa-0002"), "Mínimo")]);
+        await repository.SaveAsync([Full("aaaa-0001"), new Dataset(new DatasetId("aaaa-0002"), "Mínimo")], TestContext.Current.CancellationToken);
         StubEmbeddingGenerator embeddings = new();
         CapturingSearchIndex index = new();
         IndexCatalogService service = new(repository, embeddings, index);
 
-        int indexed = await service.ExecuteAsync();
+        int indexed = await service.ExecuteAsync(TestContext.Current.CancellationToken);
 
         indexed.ShouldBe(2);
         index.Indexed.Count.ShouldBe(2);
@@ -38,11 +38,11 @@ public sealed class IndexCatalogServiceTests
     public async Task ExecuteAsync_IndexaPorLotes_SegunBatchSize()
     {
         InMemoryCatalogRepository repository = new();
-        await repository.SaveAsync([Full("aaaa-0001"), Full("aaaa-0002"), Full("aaaa-0003")]);
+        await repository.SaveAsync([Full("aaaa-0001"), Full("aaaa-0002"), Full("aaaa-0003")], TestContext.Current.CancellationToken);
         CapturingSearchIndex index = new();
         IndexCatalogService service = new(repository, new StubEmbeddingGenerator(), index, batchSize: 2);
 
-        await service.ExecuteAsync();
+        await service.ExecuteAsync(TestContext.Current.CancellationToken);
 
         index.IndexCallCount.ShouldBe(2); // 2 + 1
     }
@@ -53,7 +53,7 @@ public sealed class IndexCatalogServiceTests
         CapturingSearchIndex index = new();
         IndexCatalogService service = new(new InMemoryCatalogRepository(), new StubEmbeddingGenerator(), index);
 
-        int indexed = await service.ExecuteAsync();
+        int indexed = await service.ExecuteAsync(TestContext.Current.CancellationToken);
 
         indexed.ShouldBe(0);
         index.IndexCallCount.ShouldBe(0);

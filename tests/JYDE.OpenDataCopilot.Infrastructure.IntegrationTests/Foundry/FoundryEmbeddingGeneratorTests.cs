@@ -25,7 +25,7 @@ public sealed class FoundryEmbeddingGeneratorTests
         FakeFoundryHandler handler = new("""{"data":[{"embedding":[0.1,0.2,0.3]}]}""");
         FoundryEmbeddingGenerator generator = Create(handler, Options());
 
-        IReadOnlyList<float> embedding = await generator.GenerateAsync("accidentalidad vial");
+        IReadOnlyList<float> embedding = await generator.GenerateAsync("accidentalidad vial", TestContext.Current.CancellationToken);
 
         embedding.Count.ShouldBe(3);
         embedding[0].ShouldBe(0.1f, 1e-5f);
@@ -40,7 +40,7 @@ public sealed class FoundryEmbeddingGeneratorTests
         FakeFoundryHandler handler = new("""{"data":[{"embedding":[1.0]}]}""");
         FoundryEmbeddingGenerator generator = Create(handler, Options(apiKey: string.Empty));
 
-        await generator.GenerateAsync("x");
+        await generator.GenerateAsync("x", TestContext.Current.CancellationToken);
 
         handler.LastApiKey.ShouldBeNull();
     }

@@ -25,8 +25,8 @@ public sealed class LocalHashingEmbeddingGeneratorTests
     {
         LocalHashingEmbeddingGenerator generator = new(dimensions: 64);
 
-        IReadOnlyList<float> first = await generator.GenerateAsync("accidentalidad vial Bogotá");
-        IReadOnlyList<float> second = await generator.GenerateAsync("accidentalidad vial Bogotá");
+        IReadOnlyList<float> first = await generator.GenerateAsync("accidentalidad vial Bogotá", TestContext.Current.CancellationToken);
+        IReadOnlyList<float> second = await generator.GenerateAsync("accidentalidad vial Bogotá", TestContext.Current.CancellationToken);
 
         first.Count.ShouldBe(64);
         first.ShouldBe(second);
@@ -37,7 +37,7 @@ public sealed class LocalHashingEmbeddingGeneratorTests
     {
         LocalHashingEmbeddingGenerator generator = new();
 
-        IReadOnlyList<float> vector = await generator.GenerateAsync("salud cobertura vacunación");
+        IReadOnlyList<float> vector = await generator.GenerateAsync("salud cobertura vacunación", TestContext.Current.CancellationToken);
 
         double norm = Math.Sqrt(vector.Sum(value => (double)value * value));
         norm.ShouldBe(1d, tolerance: 1e-5);
@@ -48,7 +48,7 @@ public sealed class LocalHashingEmbeddingGeneratorTests
     {
         LocalHashingEmbeddingGenerator generator = new(dimensions: 16);
 
-        IReadOnlyList<float> vector = await generator.GenerateAsync("   ");
+        IReadOnlyList<float> vector = await generator.GenerateAsync("   ", TestContext.Current.CancellationToken);
 
         vector.ShouldAllBe(value => value == 0f);
     }
@@ -58,9 +58,9 @@ public sealed class LocalHashingEmbeddingGeneratorTests
     {
         LocalHashingEmbeddingGenerator generator = new();
 
-        IReadOnlyList<float> a = await generator.GenerateAsync("accidentes de tránsito en vías");
-        IReadOnlyList<float> b = await generator.GenerateAsync("vías y accidentes de tránsito");
-        IReadOnlyList<float> c = await generator.GenerateAsync("cobertura de vacunación en salud");
+        IReadOnlyList<float> a = await generator.GenerateAsync("accidentes de tránsito en vías", TestContext.Current.CancellationToken);
+        IReadOnlyList<float> b = await generator.GenerateAsync("vías y accidentes de tránsito", TestContext.Current.CancellationToken);
+        IReadOnlyList<float> c = await generator.GenerateAsync("cobertura de vacunación en salud", TestContext.Current.CancellationToken);
 
         Cosine(a, b).ShouldBeGreaterThan(Cosine(a, c));
     }

@@ -14,9 +14,9 @@ public sealed class InMemoryCatalogRepositoryTests
     {
         InMemoryCatalogRepository repository = new();
 
-        await repository.SaveAsync([Sample("aaaa-0001"), Sample("aaaa-0002")]);
+        await repository.SaveAsync([Sample("aaaa-0001"), Sample("aaaa-0002")], TestContext.Current.CancellationToken);
 
-        (await repository.CountAsync()).ShouldBe(2);
+        (await repository.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(2);
     }
 
     [Fact]
@@ -24,19 +24,19 @@ public sealed class InMemoryCatalogRepositoryTests
     {
         InMemoryCatalogRepository repository = new();
 
-        await repository.SaveAsync([Sample("aaaa-0001")]);
-        await repository.SaveAsync([Sample("aaaa-0001")]);
+        await repository.SaveAsync([Sample("aaaa-0001")], TestContext.Current.CancellationToken);
+        await repository.SaveAsync([Sample("aaaa-0001")], TestContext.Current.CancellationToken);
 
-        (await repository.CountAsync()).ShouldBe(1);
+        (await repository.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(1);
     }
 
     [Fact]
     public async Task GetByIdAsync_DevuelveElDatasetGuardado()
     {
         InMemoryCatalogRepository repository = new();
-        await repository.SaveAsync([Sample("aaaa-0007")]);
+        await repository.SaveAsync([Sample("aaaa-0007")], TestContext.Current.CancellationToken);
 
-        Dataset? found = await repository.GetByIdAsync(new DatasetId("aaaa-0007"));
+        Dataset? found = await repository.GetByIdAsync(new DatasetId("aaaa-0007"), TestContext.Current.CancellationToken);
 
         found.ShouldNotBeNull();
         found.Id.Value.ShouldBe("aaaa-0007");
@@ -47,17 +47,17 @@ public sealed class InMemoryCatalogRepositoryTests
     {
         InMemoryCatalogRepository repository = new();
 
-        (await repository.GetByIdAsync(new DatasetId("zzzz-9999"))).ShouldBeNull();
+        (await repository.GetByIdAsync(new DatasetId("zzzz-9999"), TestContext.Current.CancellationToken)).ShouldBeNull();
     }
 
     [Fact]
     public async Task GetAllAsync_DevuelveTodosLosDatasets()
     {
         InMemoryCatalogRepository repository = new();
-        await repository.SaveAsync([Sample("aaaa-0001"), Sample("aaaa-0002")]);
+        await repository.SaveAsync([Sample("aaaa-0001"), Sample("aaaa-0002")], TestContext.Current.CancellationToken);
 
         List<string> ids = [];
-        await foreach (Dataset dataset in repository.GetAllAsync())
+        await foreach (Dataset dataset in repository.GetAllAsync(TestContext.Current.CancellationToken))
         {
             ids.Add(dataset.Id.Value);
         }

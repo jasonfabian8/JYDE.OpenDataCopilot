@@ -20,9 +20,9 @@ public sealed class InMemorySearchIndexTests
             Vector("aaaa-0001", 1f, 0f),   // idéntico a la consulta
             Vector("aaaa-0002", 0f, 1f),   // ortogonal
             Vector("aaaa-0003", 0.9f, 0.1f), // parecido
-        ]);
+        ], TestContext.Current.CancellationToken);
 
-        IReadOnlyList<DatasetSearchHit> hits = await index.SearchAsync([1f, 0f], topK: 2);
+        IReadOnlyList<DatasetSearchHit> hits = await index.SearchAsync([1f, 0f], topK: 2, cancellationToken: TestContext.Current.CancellationToken);
 
         hits.Count.ShouldBe(2);
         hits[0].Id.ShouldBe("aaaa-0001");
@@ -33,10 +33,10 @@ public sealed class InMemorySearchIndexTests
     public async Task IndexAsync_ConMismoId_Reemplaza()
     {
         InMemorySearchIndex index = new();
-        await index.IndexAsync([Vector("aaaa-0001", 1f, 0f)]);
-        await index.IndexAsync([Vector("aaaa-0001", 0f, 1f)]);
+        await index.IndexAsync([Vector("aaaa-0001", 1f, 0f)], TestContext.Current.CancellationToken);
+        await index.IndexAsync([Vector("aaaa-0001", 0f, 1f)], TestContext.Current.CancellationToken);
 
-        IReadOnlyList<DatasetSearchHit> hits = await index.SearchAsync([0f, 1f], topK: 5);
+        IReadOnlyList<DatasetSearchHit> hits = await index.SearchAsync([0f, 1f], topK: 5, cancellationToken: TestContext.Current.CancellationToken);
 
         hits.ShouldHaveSingleItem().Score.ShouldBeGreaterThan(0.99);
     }
@@ -46,7 +46,7 @@ public sealed class InMemorySearchIndexTests
     {
         InMemorySearchIndex index = new();
 
-        (await index.SearchAsync([1f, 0f], topK: 5)).ShouldBeEmpty();
+        (await index.SearchAsync([1f, 0f], topK: 5, cancellationToken: TestContext.Current.CancellationToken)).ShouldBeEmpty();
     }
 
     [Fact]
@@ -57,9 +57,9 @@ public sealed class InMemorySearchIndexTests
         [
             Vector("aaaa-0001", 1f, 0f, 0f), // longitud distinta a la consulta (2)
             Vector("aaaa-0002", 0f, 0f),     // vector cero
-        ]);
+        ], TestContext.Current.CancellationToken);
 
-        IReadOnlyList<DatasetSearchHit> hits = await index.SearchAsync([1f, 1f], topK: 5);
+        IReadOnlyList<DatasetSearchHit> hits = await index.SearchAsync([1f, 1f], topK: 5, cancellationToken: TestContext.Current.CancellationToken);
 
         hits.ShouldAllBe(hit => hit.Score == 0d);
     }

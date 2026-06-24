@@ -19,10 +19,10 @@ public sealed class IngestCatalogServiceTests
         InMemoryCatalogRepository repository = new();
         IngestCatalogService service = new(source, repository);
 
-        IngestCatalogResult result = await service.ExecuteAsync(CatalogFilter.All);
+        IngestCatalogResult result = await service.ExecuteAsync(CatalogFilter.All, TestContext.Current.CancellationToken);
 
         result.DatasetsIngested.ShouldBe(3);
-        (await repository.CountAsync()).ShouldBe(3);
+        (await repository.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(3);
     }
 
     [Fact]
@@ -32,11 +32,11 @@ public sealed class IngestCatalogServiceTests
         InMemoryCatalogRepository repository = new();
         IngestCatalogService service = new(source, repository, batchSize: 2);
 
-        await service.ExecuteAsync(CatalogFilter.All);
+        await service.ExecuteAsync(CatalogFilter.All, TestContext.Current.CancellationToken);
 
         // 5 datasets en lotes de 2 => 3 llamadas a SaveAsync (2 + 2 + 1).
         repository.SaveCallCount.ShouldBe(3);
-        (await repository.CountAsync()).ShouldBe(5);
+        (await repository.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(5);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class IngestCatalogServiceTests
         InMemoryCatalogRepository repository = new();
         IngestCatalogService service = new(source, repository);
 
-        IngestCatalogResult result = await service.ExecuteAsync(CatalogFilter.All);
+        IngestCatalogResult result = await service.ExecuteAsync(CatalogFilter.All, TestContext.Current.CancellationToken);
 
         result.DatasetsIngested.ShouldBe(0);
         repository.SaveCallCount.ShouldBe(0);
@@ -60,7 +60,7 @@ public sealed class IngestCatalogServiceTests
         IngestCatalogService service = new(source, repository);
         CatalogFilter filter = new(["Movilidad"], Limit: 10);
 
-        await service.ExecuteAsync(filter);
+        await service.ExecuteAsync(filter, TestContext.Current.CancellationToken);
 
         source.LastFilter.ShouldBe(filter);
     }

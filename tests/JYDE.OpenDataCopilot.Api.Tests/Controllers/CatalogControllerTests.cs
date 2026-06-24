@@ -40,7 +40,7 @@ public sealed class CatalogControllerTests
 
         OkObjectResult ok = result.ShouldBeOfType<OkObjectResult>();
         ok.Value.ShouldBeOfType<IngestCatalogResult>().DatasetsIngested.ShouldBe(2);
-        (await repository.CountAsync()).ShouldBe(2);
+        (await repository.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(2);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class CatalogControllerTests
     public async Task Count_DevuelveCantidadAlmacenada()
     {
         (CatalogController controller, InMemoryCatalogRepository repository) = Build();
-        await repository.SaveAsync([Sample("aaaa-0001"), Sample("aaaa-0002")]);
+        await repository.SaveAsync([Sample("aaaa-0001"), Sample("aaaa-0002")], TestContext.Current.CancellationToken);
 
         IActionResult result = await controller.Count(CancellationToken.None);
 
@@ -95,7 +95,7 @@ public sealed class CatalogControllerTests
             category: "Movilidad",
             tags: ["movilidad"],
             columns: [new DatasetColumn("Municipio", "municipio", "text", "Nombre")]);
-        await repository.SaveAsync([dataset]);
+        await repository.SaveAsync([dataset], TestContext.Current.CancellationToken);
 
         IActionResult result = await controller.GetById("ddau-8cy9", CancellationToken.None);
 
