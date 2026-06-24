@@ -2,7 +2,6 @@ using JYDE.OpenDataCopilot.Application.Catalog;
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using JYDE.OpenDataCopilot.Infrastructure.Socrata;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Socrata;
 

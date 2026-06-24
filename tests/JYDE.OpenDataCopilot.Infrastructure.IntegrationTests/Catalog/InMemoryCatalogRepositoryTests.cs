@@ -1,7 +1,6 @@
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using JYDE.OpenDataCopilot.Infrastructure.Catalog;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Catalog;
 

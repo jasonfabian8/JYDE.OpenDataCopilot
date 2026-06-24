@@ -6,7 +6,6 @@ using JYDE.OpenDataCopilot.Domain.Catalog;
 using JYDE.OpenDataCopilot.Infrastructure.Catalog;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Api.Tests.Controllers;
 

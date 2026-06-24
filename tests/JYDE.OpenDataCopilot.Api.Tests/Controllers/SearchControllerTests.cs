@@ -6,7 +6,6 @@ using JYDE.OpenDataCopilot.Infrastructure.Embeddings;
 using JYDE.OpenDataCopilot.Infrastructure.Search;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Api.Tests.Controllers;
 

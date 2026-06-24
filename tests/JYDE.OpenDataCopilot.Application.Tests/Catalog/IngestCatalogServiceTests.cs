@@ -1,7 +1,6 @@
 using JYDE.OpenDataCopilot.Application.Catalog;
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Application.Tests.Catalog;
 

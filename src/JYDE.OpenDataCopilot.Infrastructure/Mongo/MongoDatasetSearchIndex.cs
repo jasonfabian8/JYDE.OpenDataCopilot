@@ -16,17 +16,16 @@ public sealed class MongoDatasetSearchIndex : IDatasetSearchIndex
     private readonly IMongoCollection<DatasetVectorDocument> _collection;
     private readonly MongoOptions _options;
 
-    /// <summary>Crea el índice y asegura (best-effort) el índice de Atlas Vector Search.</summary>
-    /// <param name="options">Opciones de conexión y de vector search.</param>
-    /// <exception cref="ArgumentNullException">Si <paramref name="options"/> es nulo.</exception>
-    public MongoDatasetSearchIndex(MongoOptions options)
+    /// <summary>Crea el índice (cliente compartido) y asegura el índice de Atlas Vector Search.</summary>
+    /// <param name="context">Contexto de Mongo (cliente y base de datos compartidos).</param>
+    /// <param name="options">Opciones de vector search.</param>
+    /// <exception cref="ArgumentNullException">Si algún argumento es nulo.</exception>
+    public MongoDatasetSearchIndex(MongoContext context, MongoOptions options)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(options);
         _options = options;
-
-        IMongoClient client = new MongoClient(options.ConnectionString);
-        IMongoDatabase database = client.GetDatabase(options.Database);
-        _collection = database.GetCollection<DatasetVectorDocument>(options.SearchCollection);
+        _collection = context.Database.GetCollection<DatasetVectorDocument>(options.SearchCollection);
 
         EnsureVectorIndex();
     }

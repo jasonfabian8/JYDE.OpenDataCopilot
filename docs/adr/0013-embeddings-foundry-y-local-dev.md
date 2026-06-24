@@ -15,8 +15,8 @@ de desarrollo y pruebas deterministas).
 
 - **Objetivo (calidad):** generar embeddings vía **Azure AI Foundry**, modelo
   **`text-embedding-3-small`** (1536 dims) por su relación costo/calidad
-  ([ADR-0004](0004-azure-foundry-gpt41mini.md)). Se implementará como adaptador cuando haya
-  credenciales/deployment.
+  ([ADR-0004](0004-azure-foundry-gpt41mini.md)). **Implementado** como `FoundryEmbeddingGenerator`
+  (REST); se activa con `Providers:Embeddings = Foundry` + sección `Foundry` (endpoint/clave/deployment).
 - **Desarrollo/pruebas (costo cero, offline):** adaptador **`LocalHashingEmbeddingGenerator`** —
   embedding determinista *hashing/bag-of-words* (dimensión configurable, p. ej. 256), sin red ni
   costo. Da similitud por términos compartidos; suficiente para cablear y probar el flujo.

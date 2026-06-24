@@ -2,6 +2,7 @@ using JYDE.OpenDataCopilot.Application.Catalog;
 using JYDE.OpenDataCopilot.Application.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Catalog;
 using JYDE.OpenDataCopilot.Infrastructure.Embeddings;
+using JYDE.OpenDataCopilot.Infrastructure.Foundry;
 using JYDE.OpenDataCopilot.Infrastructure.Mongo;
 using JYDE.OpenDataCopilot.Infrastructure.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Socrata;
@@ -27,12 +28,21 @@ MongoOptions mongoOptions =
     builder.Configuration.GetSection(MongoOptions.SectionName).Get<MongoOptions>() ?? new MongoOptions();
 builder.Services.AddSingleton(mongoOptions);
 
-// Composition root: selección de adaptadores por puerto (ver ADR-0003).
+// Proveedores seleccionados por configuración (ver ADR-0003).
+string catalogRepository = builder.Configuration["Providers:CatalogRepository"] ?? "InMemory";
+string searchIndex = builder.Configuration["Providers:SearchIndex"] ?? "InMemory";
+string embeddingsProvider = builder.Configuration["Providers:Embeddings"] ?? "Local";
+
+// Cliente Mongo ÚNICO compartido por los adaptadores Mongo (el cliente gestiona el pool).
+if (IsMongo(catalogRepository) || IsMongo(searchIndex))
+{
+    builder.Services.AddSingleton<MongoContext>();
+}
+
 // Catálogo: fuente = Socrata.
 builder.Services.AddHttpClient<ICatalogSource, SocrataCatalogClient>();
 
-// Repositorio del catálogo: InMemory (por defecto) o Mongo (Atlas).
-string catalogRepository = builder.Configuration["Providers:CatalogRepository"] ?? "InMemory";
+// Catálogo: repositorio = InMemory (por defecto) o Mongo (Atlas).
 if (IsMongo(catalogRepository))
 {
     builder.Services.AddSingleton<ICatalogRepository, MongoCatalogRepository>();
@@ -45,11 +55,20 @@ else
 builder.Services.AddTransient<IngestCatalogService>();
 builder.Services.AddTransient<CatalogQueryService>();
 
-// Search: embeddings (Local por ahora; Foundry pendiente) + índice (InMemory o Atlas Vector Search).
-// La dimensión del embedding local se ata a la del índice vectorial para que siempre concuerden.
-builder.Services.AddSingleton<IEmbeddingGenerator>(_ => new LocalHashingEmbeddingGenerator(mongoOptions.VectorDimensions));
+// Search: embeddings = Local (por defecto, $0) o Foundry (Azure AI Foundry).
+if (IsFoundry(embeddingsProvider))
+{
+    FoundryOptions foundryOptions =
+        builder.Configuration.GetSection(FoundryOptions.SectionName).Get<FoundryOptions>() ?? new FoundryOptions();
+    builder.Services.AddSingleton(foundryOptions);
+    builder.Services.AddHttpClient<IEmbeddingGenerator, FoundryEmbeddingGenerator>();
+}
+else
+{
+    builder.Services.AddSingleton<IEmbeddingGenerator>(_ => new LocalHashingEmbeddingGenerator(mongoOptions.VectorDimensions));
+}
 
-string searchIndex = builder.Configuration["Providers:SearchIndex"] ?? "InMemory";
+// Search: índice = InMemory (por defecto) o Atlas Vector Search.
 if (IsMongo(searchIndex))
 {
     builder.Services.AddSingleton<IDatasetSearchIndex, MongoDatasetSearchIndex>();
@@ -70,3 +89,5 @@ app.MapControllers();
 app.Run();
 
 static bool IsMongo(string provider) => string.Equals(provider, "Mongo", StringComparison.OrdinalIgnoreCase);
+
+static bool IsFoundry(string provider) => string.Equals(provider, "Foundry", StringComparison.OrdinalIgnoreCase);

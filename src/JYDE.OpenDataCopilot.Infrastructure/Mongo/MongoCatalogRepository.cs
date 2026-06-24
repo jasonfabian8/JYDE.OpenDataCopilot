@@ -16,15 +16,15 @@ public sealed class MongoCatalogRepository : ICatalogRepository
 {
     private readonly IMongoCollection<DatasetDocument> _collection;
 
-    /// <summary>Crea el repositorio Mongo a partir de las opciones de conexión.</summary>
-    /// <param name="options">Opciones de conexión (cadena, base de datos, colección).</param>
-    /// <exception cref="ArgumentNullException">Si <paramref name="options"/> es nulo.</exception>
-    public MongoCatalogRepository(MongoOptions options)
+    /// <summary>Crea el repositorio Mongo usando el cliente compartido.</summary>
+    /// <param name="context">Contexto de Mongo (cliente y base de datos compartidos).</param>
+    /// <param name="options">Opciones (nombre de colección).</param>
+    /// <exception cref="ArgumentNullException">Si algún argumento es nulo.</exception>
+    public MongoCatalogRepository(MongoContext context, MongoOptions options)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(options);
-        IMongoClient client = new MongoClient(options.ConnectionString);
-        IMongoDatabase database = client.GetDatabase(options.Database);
-        _collection = database.GetCollection<DatasetDocument>(options.CatalogCollection);
+        _collection = context.Database.GetCollection<DatasetDocument>(options.CatalogCollection);
     }
 
     /// <inheritdoc />

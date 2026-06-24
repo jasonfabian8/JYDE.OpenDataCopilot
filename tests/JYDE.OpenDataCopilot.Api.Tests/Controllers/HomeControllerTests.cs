@@ -1,7 +1,6 @@
 using JYDE.OpenDataCopilot.Api.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Api.Tests.Controllers;
 
