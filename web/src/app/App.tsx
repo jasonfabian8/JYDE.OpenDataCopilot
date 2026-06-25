@@ -6,6 +6,7 @@ import { HowItWorks } from "../features/landing/components/HowItWorks.tsx";
 import { Principles } from "../features/landing/components/Principles.tsx";
 import { SiteFooter } from "../features/landing/components/SiteFooter.tsx";
 import { OperationsPanel } from "../features/operations/components/OperationsPanel.tsx";
+import { ChatPanel } from "../features/chat/components/ChatPanel.tsx";
 
 /** Raíz de la landing pública: compone las secciones del sitio. */
 export function App(): ReactElement {
@@ -14,6 +15,7 @@ export function App(): ReactElement {
       <SiteHeader />
       <main>
         <Hero />
+        <ChatPanel />
         <Mission />
         <HowItWorks />
         <Principles />

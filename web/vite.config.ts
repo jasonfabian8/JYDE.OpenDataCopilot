@@ -14,6 +14,7 @@ export default defineConfig({
     proxy: {
       "/catalog": { target: apiTarget, changeOrigin: true },
       "/search": { target: apiTarget, changeOrigin: true },
+      "/chat": { target: apiTarget, changeOrigin: true },
     },
   },
 });

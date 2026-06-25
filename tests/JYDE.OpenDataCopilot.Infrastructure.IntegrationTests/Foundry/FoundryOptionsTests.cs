@@ -1,10 +1,9 @@
 using JYDE.OpenDataCopilot.Infrastructure.Foundry;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Foundry;
 
-/// <summary>Pruebas de <see cref="FoundryOptions"/>.</summary>
+/// <summary>Pruebas de <see cref="FoundryOptions"/> y sus sub-configuraciones.</summary>
 public sealed class FoundryOptionsTests
 {
     [Fact]
@@ -14,9 +13,11 @@ public sealed class FoundryOptionsTests
 
         options.Endpoint.ShouldBeEmpty();
         options.ApiKey.ShouldBeEmpty();
-        options.EmbeddingDeployment.ShouldBe("text-embedding-3-small");
-        options.ApiVersion.ShouldBe("2024-02-01");
-        options.Dimensions.ShouldBe(1536);
+        options.Chat.Model.ShouldBe("gpt-4o-mini");
+        options.Chat.Agents.ShouldBeEmpty();
+        options.Embeddings.Deployment.ShouldBe("text-embedding-3-small");
+        options.Embeddings.ApiVersion.ShouldBe("2024-02-01");
+        options.Embeddings.Dimensions.ShouldBe(1536);
         FoundryOptions.SectionName.ShouldBe("Foundry");
     }
 
@@ -25,17 +26,23 @@ public sealed class FoundryOptionsTests
     {
         FoundryOptions options = new()
         {
-            Endpoint = "https://x.openai.azure.com",
+            Endpoint = "https://x.services.ai.azure.com/api/projects/p",
             ApiKey = "k",
-            EmbeddingDeployment = "otro",
-            ApiVersion = "2025-01-01",
-            Dimensions = 256,
+            Chat = new FoundryChatSettings
+            {
+                Model = "gpt-4o",
+                Agents = { ["dataset-recommender-agent"] = new FoundryAgentSettings { Name = "reco", Version = "2", Model = "gpt-4o-mini" } },
+            },
+            Embeddings = new FoundryEmbeddingSettings { Deployment = "otro", ApiVersion = "2025-01-01", Dimensions = 256 },
         };
 
-        options.Endpoint.ShouldBe("https://x.openai.azure.com");
+        options.Endpoint.ShouldBe("https://x.services.ai.azure.com/api/projects/p");
         options.ApiKey.ShouldBe("k");
-        options.EmbeddingDeployment.ShouldBe("otro");
-        options.ApiVersion.ShouldBe("2025-01-01");
-        options.Dimensions.ShouldBe(256);
+        options.Chat.Model.ShouldBe("gpt-4o");
+        options.Chat.Agents["dataset-recommender-agent"].Name.ShouldBe("reco");
+        options.Chat.Agents["dataset-recommender-agent"].Version.ShouldBe("2");
+        options.Chat.Agents["dataset-recommender-agent"].Model.ShouldBe("gpt-4o-mini");
+        options.Embeddings.Deployment.ShouldBe("otro");
+        options.Embeddings.Dimensions.ShouldBe(256);
     }
 }

@@ -19,17 +19,19 @@ internal sealed class FakeFoundryHandler : HttpMessageHandler
 
     public string? LastApiKey { get; private set; }
 
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    public string? LastBody { get; private set; }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         LastUri = request.RequestUri;
         LastApiKey = request.Headers.TryGetValues("api-key", out IEnumerable<string>? values)
             ? values.FirstOrDefault()
             : null;
+        LastBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
 
-        HttpResponseMessage response = new(_status)
+        return new HttpResponseMessage(_status)
         {
             Content = new StringContent(_body, Encoding.UTF8, "application/json"),
         };
-        return Task.FromResult(response);
     }
 }

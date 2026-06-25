@@ -1,7 +1,6 @@
 using JYDE.OpenDataCopilot.Application.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Search;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Search;
 

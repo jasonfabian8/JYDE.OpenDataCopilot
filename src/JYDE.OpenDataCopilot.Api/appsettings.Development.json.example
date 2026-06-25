@@ -3,18 +3,27 @@
   "Providers": {
     "CatalogRepository": "Mongo",
     "SearchIndex": "Mongo",
-    "Embeddings": "Local"
+    "Embeddings": "Local",
+    "Chat": "Foundry"
   },
   "Mongo": {
     "ConnectionString": "mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/?appName=<app>",
     "Database": "odc_BD"
   },
-  "// Para usar Foundry": "Cambia Providers:Embeddings a 'Foundry' y completa esta sección (NO commitees la clave).",
+  "// Foundry": "Endpoint del proyecto de Foundry + api-key. NO commitees la clave (este archivo está gitignored).",
   "Foundry": {
-    "Endpoint": "https://<recurso>.openai.azure.com",
+    "Endpoint": "https://<recurso>.services.ai.azure.com/api/projects/<proyecto>",
     "ApiKey": "<clave>",
-    "EmbeddingDeployment": "text-embedding-3-small",
-    "ApiVersion": "2024-02-01",
-    "Dimensions": 1536
+    "Chat": {
+      "Model": "gpt-4o-mini",
+      "Agents": {
+        "dataset-recommender-agent": { "Name": "dataset-recommender-agent", "Version": "1" }
+      }
+    },
+    "Embeddings": {
+      "Deployment": "text-embedding-3-small",
+      "ApiVersion": "2024-02-01",
+      "Dimensions": 1536
+    }
   }
 }
