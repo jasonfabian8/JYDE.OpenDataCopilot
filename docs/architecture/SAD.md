@@ -47,6 +47,7 @@
 | [0012](../adr/0012-persistencia-mongodb-atlas.md) | Persistencia con MongoDB Atlas (driver y almacén del catálogo) |
 | [0013](../adr/0013-embeddings-foundry-y-local-dev.md) | Embeddings: Foundry (objetivo) + adaptador local para dev |
 | [0014](../adr/0014-atlas-vector-search.md) | Índice de búsqueda con MongoDB Atlas Vector Search |
+| [0015](../adr/0015-arquitectura-multiagente.md) | Conversación: arquitectura multiagente (Copilot + agentes) |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).
@@ -92,7 +93,7 @@ Api ──► Infrastructure ──► Application ──► Domain
 |----------|-----------------|---------------------|-------------|
 | **Catalog** | Ingestar/almacenar metadatos del catálogo | `ICatalogSource`, `ICatalogRepository` | `SocrataCatalogClient`; `InMemory`/`Mongo` (repositorio) |
 | **Search** | Indexar y recuperar datasets (vector + keyword) | `IDatasetSearchIndex`, `IEmbeddingGenerator` | `InMemory`/`Mongo` (Atlas Vector Search) índice; `Local`/`Foundry` embeddings |
-| **Conversation** | Orquestar pregunta → respuesta citada | `IChatCompletion`, `IDataQuery`, `IConversationStore` | `FoundryChatCompletion`, `SocrataDataQuery` |
+| **Conversation** | Copilot multiagente: orquesta agentes → respuesta citada (SSE) | `IChatCompletion`, `IConversationAgent`, `IAgentRouter`, (`IDataQuery`, `IConversationStore`) | `Fake`/`Foundry` (chat); agentes: `DatasetRecommenderAgent` (+ cifras, …) |
 | **DataCache** | Cachear datasets seleccionados | `IDatasetCache` | `DuckDb`/`Postgres` (local), `MongoAtlas` (prod) |
 
 ---
