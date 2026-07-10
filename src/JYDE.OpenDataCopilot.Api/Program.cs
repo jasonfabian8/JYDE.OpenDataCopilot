@@ -14,7 +14,11 @@ builder.Services.AddSingleton(socrataOptions);
 
 // Composition root: selección de adaptadores por puerto (ver ADR-0003).
 // Catálogo: fuente = Socrata; repositorio = en memoria (desarrollo/demo, singleton).
-builder.Services.AddHttpClient<ICatalogSource, SocrataCatalogClient>();
+// Nota (deuda técnica TD-001, ver docs/tech-debt.md): Catalog aún no entra en la matriz `Providers`
+// del ADR-0003 (hay un único adaptador por puerto). La selección por configuración se añadirá al
+// incorporar el segundo adaptador (el ADR contempla implementación incremental de los contratos).
+builder.Services.AddHttpClient<ICatalogSource, SocrataCatalogClient>(
+    client => client.Timeout = TimeSpan.FromSeconds(socrataOptions.TimeoutSeconds));
 builder.Services.AddSingleton<ICatalogRepository, InMemoryCatalogRepository>();
 builder.Services.AddTransient<IngestCatalogService>();
 builder.Services.AddTransient<CatalogQueryService>();
