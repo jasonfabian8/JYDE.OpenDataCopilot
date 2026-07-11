@@ -37,14 +37,25 @@ jobs:
         run: |
           New-Item -Path ${{ runner.temp }}\scanner -ItemType Directory
           dotnet tool update dotnet-sonarscanner --tool-path ${{ runner.temp }}\scanner
-      - name: Build and analyze
+      - name: Begin SonarCloud analysis
         env:
-          # El SonarScanner for .NET lee SONAR_TOKEN del entorno automáticamente.
-          # Pasarlo por `env:` (y NO expandirlo dentro del `run:`) cumple S7636 y evita el
-          # token vacío por sintaxis de shell: en PowerShell las env vars son $env:VAR, no $VAR.
+          # El SonarScanner for .NET lee SONAR_TOKEN del entorno automáticamente. Pasarlo por `env:`
+          # (y NO expandirlo dentro del `run:`) cumple S7636; en PowerShell las env vars son $env:VAR.
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
+        # sonar.cs.opencover.reportsPaths: reportes de cobertura (formato OpenCover, el que lee el
+        # plugin de C#). sonar.coverage.exclusions: espeja lo que coverlet excluye (Program.cs por
+        # ExcludeByFile y los adaptadores Mongo con [ExcludeFromCodeCoverage]) para que el % coincida.
         run: |
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"jasonfabian8_JYDE.OpenDataCopilot" /o:"jasonfabian8"
-          dotnet build
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner end
+          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"jasonfabian8_JYDE.OpenDataCopilot" /o:"jasonfabian8" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/Program.cs,**/Mongo/MongoContext.cs,**/Mongo/MongoCatalogRepository.cs,**/Mongo/MongoDatasetSearchIndex.cs,**/Mongo/DatasetVectorDocument.cs"
+      - name: Build and test with coverage
+        shell: powershell
+        # `dotnet test` compila (lo que dispara el análisis de Sonar) y recolecta cobertura OpenCover
+        # por proyecto (tests/*/coverage.opencover.xml). Respeta el umbral >=95% de Directory.Build.props.
+        run: dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+      - name: End SonarCloud analysis
+        if: always()  # sube el análisis y la cobertura aunque el umbral de cobertura falle
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: powershell
+        run: ${{ runner.temp }}\scanner\dotnet-sonarscanner end
