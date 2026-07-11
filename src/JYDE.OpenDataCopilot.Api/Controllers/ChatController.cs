@@ -1,4 +1,6 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using JYDE.OpenDataCopilot.Api.Conversation;
 using JYDE.OpenDataCopilot.Application.Conversation;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +12,13 @@ namespace JYDE.OpenDataCopilot.Api.Controllers;
 [Route("chat")]
 public sealed class ChatController : ControllerBase
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    // El SSE es UTF-8: emitimos acentos/ñ como caracteres reales (p. ej. "Protección"), no como
+    // secuencias \uXXXX, para un stream legible y compacto. Se conserva el escape de < > & por
+    // seguridad. El frontend hace JSON.parse igual en ambos casos.
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+    };
 
     private readonly CopilotOrchestrator _orchestrator;
 
