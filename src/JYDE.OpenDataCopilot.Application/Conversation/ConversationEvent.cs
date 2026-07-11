@@ -6,12 +6,16 @@ namespace JYDE.OpenDataCopilot.Application.Conversation;
 /// <param name="Token">Fragmento de texto (en eventos <see cref="ConversationEventKind.Token"/>).</param>
 /// <param name="Sources">Fuentes citadas (en eventos <see cref="ConversationEventKind.Sources"/>).</param>
 /// <param name="ConversationId">Id del hilo (en eventos <see cref="ConversationEventKind.Conversation"/>).</param>
+/// <param name="Query">Consulta a reintentar tras cargar (en eventos <see cref="ConversationEventKind.Categories"/>).</param>
+/// <param name="Categories">Categorías recomendadas (en eventos <see cref="ConversationEventKind.Categories"/>).</param>
 public sealed record ConversationEvent(
     ConversationEventKind Kind,
     string? Agent = null,
     string? Token = null,
     IReadOnlyList<Citation>? Sources = null,
-    string? ConversationId = null)
+    string? ConversationId = null,
+    string? Query = null,
+    IReadOnlyList<CategoryRecommendation>? Categories = null)
 {
     /// <summary>Crea un evento que anuncia el agente que atiende.</summary>
     public static ConversationEvent ForAgent(string agent) => new(ConversationEventKind.Agent, Agent: agent);
@@ -19,6 +23,10 @@ public sealed record ConversationEvent(
     /// <summary>Crea un evento con las fuentes citadas.</summary>
     public static ConversationEvent ForSources(IReadOnlyList<Citation> sources) =>
         new(ConversationEventKind.Sources, Sources: sources);
+
+    /// <summary>Crea un evento con categorías recomendadas para cargar y la consulta a reintentar.</summary>
+    public static ConversationEvent ForCategories(string query, IReadOnlyList<CategoryRecommendation> categories) =>
+        new(ConversationEventKind.Categories, Query: query, Categories: categories);
 
     /// <summary>Crea un evento con un fragmento de texto.</summary>
     public static ConversationEvent ForToken(string token) => new(ConversationEventKind.Token, Token: token);

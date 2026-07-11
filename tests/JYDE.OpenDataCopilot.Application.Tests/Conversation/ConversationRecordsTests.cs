@@ -62,4 +62,21 @@ public sealed class ConversationRecordsTests
         agent.GetHashCode().ShouldBe(ConversationEvent.ForAgent("reco").GetHashCode());
         agent.ToString().ShouldContain("Agent");
     }
+
+    [Fact]
+    public void ConversationEvent_Categorias_YCategoryRecommendation()
+    {
+        CategoryRecommendation recommendation = new("Transporte", 261, false, 0.9);
+        ConversationEvent categories = ConversationEvent.ForCategories("accidentalidad vial", [recommendation]);
+
+        categories.Kind.ShouldBe(ConversationEventKind.Categories);
+        categories.Query.ShouldBe("accidentalidad vial");
+        CategoryRecommendation single = categories.Categories.ShouldNotBeNull().ShouldHaveSingleItem();
+        single.Name.ShouldBe("Transporte");
+        single.Count.ShouldBe(261);
+        single.Loaded.ShouldBeFalse();
+        single.Relevance.ShouldBe(0.9);
+        (recommendation with { Loaded = true }).ShouldNotBe(recommendation);
+        recommendation.ToString().ShouldContain("Transporte");
+    }
 }

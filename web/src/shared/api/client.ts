@@ -20,6 +20,20 @@ export interface IndexResult {
   readonly indexed: number;
 }
 
+/** Categoría temática del catálogo con su conteo de datasets. */
+export interface CatalogCategory {
+  readonly name: string;
+  readonly count: number;
+}
+
+/** Opciones para acotar una ingesta del catálogo. */
+export interface IngestOptions {
+  /** Categorías a incluir; vacío/omitido = todo el catálogo. */
+  readonly categories?: ReadonlyArray<string>;
+  /** Máximo de datasets a ingerir; omitido = sin límite. */
+  readonly limit?: number;
+}
+
 async function request<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
   const response: Response = await fetch(`${baseUrl}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -35,15 +49,24 @@ async function request<TResponse>(path: string, init?: RequestInit): Promise<TRe
 
 /** Operaciones del catálogo. */
 export const catalogApi = {
-  /** Ingiere el catálogo desde la fuente (opcionalmente acotado por un límite). */
-  ingest: (limit?: number): Promise<IngestResult> =>
+  /** Ingiere el catálogo desde la fuente, acotado por categorías y/o límite (vacío = todo). */
+  ingest: (options: IngestOptions = {}): Promise<IngestResult> =>
     request<IngestResult>("/catalog/ingest", {
       method: "POST",
-      body: JSON.stringify(typeof limit === "number" ? { limit } : {}),
+      body: JSON.stringify({
+        ...(options.categories !== undefined && options.categories.length > 0
+          ? { categories: options.categories }
+          : {}),
+        ...(typeof options.limit === "number" ? { limit: options.limit } : {}),
+      }),
     }),
 
   /** Devuelve la cantidad de datasets almacenados. */
   count: (): Promise<CountResult> => request<CountResult>("/catalog/count"),
+
+  /** Lista las categorías temáticas del catálogo (con su conteo) para acotar la ingesta. */
+  categories: (): Promise<ReadonlyArray<CatalogCategory>> =>
+    request<ReadonlyArray<CatalogCategory>>("/catalog/categories"),
 };
 
 /** Operaciones de búsqueda. */
@@ -60,10 +83,19 @@ export interface ChatSource {
   readonly score: number;
 }
 
+/** Categoría recomendada por el Copilot (acción sugerida: cargarla). */
+export interface ChatCategory {
+  readonly name: string;
+  readonly count: number;
+  readonly loaded: boolean;
+  readonly relevance: number;
+}
+
 /** Evento del flujo de chat (SSE). */
 export type ChatEvent =
   | { readonly kind: "agent"; readonly agent: string }
   | { readonly kind: "sources"; readonly sources: ReadonlyArray<ChatSource> }
+  | { readonly kind: "categories"; readonly query: string; readonly categories: ReadonlyArray<ChatCategory> }
   | { readonly kind: "token"; readonly text: string }
   | { readonly kind: "conversation"; readonly conversationId: string }
   | { readonly kind: "done" };
@@ -89,6 +121,12 @@ function parseSseFrame(frame: string): ChatEvent | null {
       return { kind: "agent", agent: typeof payload.agent === "string" ? payload.agent : "" };
     case "sources":
       return { kind: "sources", sources: (payload.sources as ReadonlyArray<ChatSource>) ?? [] };
+    case "categories":
+      return {
+        kind: "categories",
+        query: typeof payload.query === "string" ? payload.query : "",
+        categories: (payload.categories as ReadonlyArray<ChatCategory>) ?? [],
+      };
     case "token":
       return { kind: "token", text: typeof payload.text === "string" ? payload.text : "" };
     case "conversation":

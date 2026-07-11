@@ -1,24 +1,38 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using JYDE.OpenDataCopilot.Application.Search;
 
 namespace JYDE.OpenDataCopilot.Application.Conversation;
 
 /// <summary>
-/// Agente especializado en recomendar datasets: recupera los más relevantes (Search) y pide al LLM
-/// una recomendación clara y citada, manteniendo el hilo de conversación (threading).
+/// Agente especializado en recomendar datasets: recupera candidatos (Search) y pide al LLM una
+/// respuesta estructurada (JSON) con el texto para el ciudadano y una relevancia RECALCULADA por
+/// cada candidato. Con esa relevancia decide qué citar: solo los que superan el umbral, evitando
+/// citar datasets que —aunque cercanos por embedding— no vienen al caso. Mantiene el hilo (threading).
 /// </summary>
 public sealed class DatasetRecommenderAgent : IConversationAgent
 {
+    /// <summary>Relevancia mínima (0-1, recalculada por el LLM) para citar un candidato.</summary>
+    public const double DefaultRelevanceThreshold = 0.5;
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly IEmbeddingGenerator _embeddings;
     private readonly IDatasetSearchIndex _index;
     private readonly IChatCompletion _chat;
+    private readonly double _relevanceThreshold;
 
     /// <summary>Crea el agente recomendador.</summary>
     /// <param name="embeddings">Generador de embeddings.</param>
     /// <param name="index">Índice de búsqueda de datasets.</param>
     /// <param name="chat">Modelo de chat (LLM).</param>
+    /// <param name="relevanceThreshold">Relevancia mínima (recalculada por el LLM) para citar.</param>
     /// <exception cref="ArgumentNullException">Si alguna dependencia es nula.</exception>
-    public DatasetRecommenderAgent(IEmbeddingGenerator embeddings, IDatasetSearchIndex index, IChatCompletion chat)
+    public DatasetRecommenderAgent(
+        IEmbeddingGenerator embeddings,
+        IDatasetSearchIndex index,
+        IChatCompletion chat,
+        double relevanceThreshold = DefaultRelevanceThreshold)
     {
         ArgumentNullException.ThrowIfNull(embeddings);
         ArgumentNullException.ThrowIfNull(index);
@@ -26,6 +40,7 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
         _embeddings = embeddings;
         _index = index;
         _chat = chat;
+        _relevanceThreshold = relevanceThreshold;
     }
 
     /// <inheritdoc />
@@ -57,19 +72,20 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
         IReadOnlyList<float> queryEmbedding = await _embeddings.GenerateAsync(context.Question, cancellationToken);
         IReadOnlyList<DatasetSearchHit> hits = await _index.SearchAsync(queryEmbedding, context.TopK, cancellationToken);
 
-        if (hits.Count > 0)
-        {
-            IReadOnlyList<Citation> citations =
-                [.. hits.Select(hit => new Citation(hit.Id, hit.Name, hit.SourceUrl, hit.Score))];
-            yield return ConversationEvent.ForSources(citations);
-        }
-
-        // Las instrucciones del agente viven en Foundry; aquí componemos el input (consulta + candidatos)
-        // y mantenemos el hilo con el id de respuesta anterior.
+        // Componemos el input (consulta + candidatos con su id) pidiendo una respuesta JSON con la
+        // relevancia recalculada; mantenemos el hilo con el id de respuesta anterior.
         ChatPrompt prompt = new(Name, BuildInput(context.Question, hits), context.PreviousResponseId);
         ChatResult result = await _chat.CompleteAsync(prompt, cancellationToken);
 
-        foreach (string chunk in Chunk(result.Text))
+        (string answer, IReadOnlyList<Citation> citations) = Interpret(result.Text, hits);
+
+        // Las fuentes se emiten DESPUÉS del LLM: solo se citan las que él marcó como relevantes.
+        if (citations.Count > 0)
+        {
+            yield return ConversationEvent.ForSources(citations);
+        }
+
+        foreach (string chunk in Chunk(answer))
         {
             cancellationToken.ThrowIfCancellationRequested();
             yield return ConversationEvent.ForToken(chunk);
@@ -83,19 +99,94 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
         yield return ConversationEvent.Completed();
     }
 
+    /// <summary>
+    /// Interpreta la respuesta del LLM: extrae el texto y las relevancias recalculadas, y construye
+    /// las citas de los candidatos que superan el umbral. Si el JSON no se puede leer, degrada a
+    /// devolver el texto tal cual sin citar (evita citar candidatos sin relevancia validada).
+    /// </summary>
+    private (string Answer, IReadOnlyList<Citation> Citations) Interpret(
+        string text,
+        IReadOnlyList<DatasetSearchHit> hits)
+    {
+        RecommenderReply? reply = TryParseReply(text);
+        if (reply is null)
+        {
+            return (text, []);
+        }
+
+        string answer = string.IsNullOrWhiteSpace(reply.Respuesta) ? text : reply.Respuesta;
+
+        Dictionary<string, double> relevanceById = new(StringComparer.OrdinalIgnoreCase);
+        foreach (RecommenderDatasetScore score in reply.Datasets ?? [])
+        {
+            if (!string.IsNullOrWhiteSpace(score.Id))
+            {
+                relevanceById[score.Id] = score.Relevancia;
+            }
+        }
+
+        IReadOnlyList<Citation> citations =
+        [
+            .. hits
+                .Where(hit => relevanceById.TryGetValue(hit.Id, out double relevance) && relevance >= _relevanceThreshold)
+                .Select(hit => new Citation(hit.Id, hit.Name, hit.SourceUrl, relevanceById[hit.Id]))
+                .OrderByDescending(citation => citation.Score)
+        ];
+
+        return (answer, citations);
+    }
+
+    private static RecommenderReply? TryParseReply(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        // El modelo puede envolver el JSON en prosa o en vallas ```; tomamos del primer '{' al último '}'.
+        int start = text.IndexOf('{');
+        int end = text.LastIndexOf('}');
+        if (start < 0 || end <= start)
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<RecommenderReply>(text[start..(end + 1)], JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     private static string BuildInput(string question, IReadOnlyList<DatasetSearchHit> hits)
     {
-        string candidates = hits.Count == 0
-            ? "(no se encontraron datasets candidatos para esta consulta)"
-            : string.Join(
-                Environment.NewLine,
-                hits.Select((hit, index) =>
-                    $"{index + 1}. {hit.Name} (categoría: {hit.Category ?? "n/d"}; fuente: {hit.SourceUrl ?? "n/d"})"));
+        // Las reglas, la rúbrica y el tono viven en las instrucciones del agente en Foundry
+        // (versionadas). Aquí enviamos solo los DATOS + un recordatorio compacto del esquema JSON.
+        string nl = Environment.NewLine;
+
+        if (hits.Count == 0)
+        {
+            return
+                $"Consulta del ciudadano: {question}{nl}{nl}" +
+                $"No se recuperaron datasets candidatos del índice de datos.gov.co para esta consulta.{nl}" +
+                "Responde ÚNICAMENTE con el JSON acordado: {\"respuesta\": \"...\", \"datasets\": []}";
+        }
+
+        string candidates = string.Join(
+            nl,
+            hits.Select((hit, index) =>
+                $"{index + 1}. [id={hit.Id}] {hit.Name} " +
+                $"(categoría: {hit.Category ?? "n/d"}; fuente: {hit.SourceUrl ?? "n/d"})"));
 
         return
-            $"Consulta del ciudadano: {question}{Environment.NewLine}{Environment.NewLine}" +
-            $"Datasets candidatos:{Environment.NewLine}{candidates}{Environment.NewLine}{Environment.NewLine}" +
-            "Recomienda cuáles le sirven y por qué.";
+            $"Consulta del ciudadano: {question}{nl}{nl}" +
+            $"Candidatos recuperados del índice de datos.gov.co por búsqueda semántica " +
+            $"(NO los aporta el ciudadano):{nl}{candidates}{nl}{nl}" +
+            "Responde ÚNICAMENTE con el JSON acordado: " +
+            "{\"respuesta\": \"...\", \"datasets\": [{\"id\": \"<id>\", \"relevancia\": <0.0-1.0>}]}";
     }
 
     /// <summary>Trocea el texto en fragmentos (por palabras) para dar sensación de streaming.</summary>

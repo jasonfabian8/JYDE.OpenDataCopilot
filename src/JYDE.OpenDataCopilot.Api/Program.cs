@@ -69,6 +69,7 @@ else
 
 builder.Services.AddTransient<IngestCatalogService>();
 builder.Services.AddTransient<CatalogQueryService>();
+builder.Services.AddTransient<ListCatalogCategoriesService>();
 
 // Search: embeddings = Local (por defecto, $0) o Foundry (Azure AI Foundry).
 if (IsFoundry(embeddingsProvider))
@@ -103,8 +104,40 @@ else
     builder.Services.AddSingleton<IChatCompletion, FakeChatCompletion>();
 }
 
-builder.Services.AddSingleton<IConversationAgent, DatasetRecommenderAgent>();
-builder.Services.AddSingleton<IAgentRouter, DefaultAgentRouter>();
+// Agente de categorías: recomienda qué categorías cargar. Se registra PRIMERO para que, en la
+// reserva por reglas, capture las consultas de intención "categorías/cargar".
+double categoryRelevanceThreshold =
+    builder.Configuration.GetValue<double?>("Conversation:CategoryRelevanceThreshold")
+    ?? CategoryRecommenderAgent.DefaultRelevanceThreshold;
+builder.Services.AddSingleton<IConversationAgent>(provider => new CategoryRecommenderAgent(
+    provider.GetRequiredService<ICatalogSource>(),
+    provider.GetRequiredService<ICatalogRepository>(),
+    provider.GetRequiredService<IChatCompletion>(),
+    categoryRelevanceThreshold));
+
+// Agente recomendador de datasets: umbral de relevancia RECALCULADA por el LLM (configurable).
+double relevanceThreshold =
+    builder.Configuration.GetValue<double?>("Search:RelevanceThreshold")
+    ?? DatasetRecommenderAgent.DefaultRelevanceThreshold;
+builder.Services.AddSingleton<IConversationAgent>(provider => new DatasetRecommenderAgent(
+    provider.GetRequiredService<IEmbeddingGenerator>(),
+    provider.GetRequiredService<IDatasetSearchIndex>(),
+    provider.GetRequiredService<IChatCompletion>(),
+    relevanceThreshold));
+
+// Enrutador: basado en LLM cuando el chat es Foundry (agente enrutador publicado); por reglas en
+// local/Fake. El enrutador LLM degrada a reglas si el agente no está disponible.
+if (IsFoundry(chatProvider))
+{
+    string routerAgent = builder.Configuration["Conversation:RouterAgent"] ?? LlmAgentRouter.DefaultRouterAgent;
+    builder.Services.AddSingleton<IAgentRouter>(provider =>
+        new LlmAgentRouter(provider.GetRequiredService<IChatCompletion>(), routerAgent));
+}
+else
+{
+    builder.Services.AddSingleton<IAgentRouter, DefaultAgentRouter>();
+}
+
 builder.Services.AddTransient<CopilotOrchestrator>();
 
 WebApplication app = builder.Build();

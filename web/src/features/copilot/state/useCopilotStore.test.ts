@@ -1,11 +1,15 @@
 import { useCopilotStore, initialCopilotState } from "./useCopilotStore.ts";
-import { chatApi } from "../../../shared/api/client.ts";
+import { chatApi, catalogApi, searchApi } from "../../../shared/api/client.ts";
 
 vi.mock("../../../shared/api/client.ts", () => ({
   chatApi: { stream: vi.fn() },
+  catalogApi: { ingest: vi.fn(), count: vi.fn(), categories: vi.fn() },
+  searchApi: { buildIndex: vi.fn() },
 }));
 
 const chat = vi.mocked(chatApi);
+const catalog = vi.mocked(catalogApi);
+const search = vi.mocked(searchApi);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -110,5 +114,52 @@ describe("useCopilotStore", () => {
 
     expect(useCopilotStore.getState().status).toBe("error");
     expect(useCopilotStore.getState().error).toContain("boom");
+  });
+
+  it("guarda las categorías recomendadas y la consulta en el mensaje del asistente", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "agent", agent: "category-recommender-agent" };
+      yield {
+        kind: "categories",
+        query: "suicidio juvenil",
+        categories: [{ name: "Salud y Protección Social", count: 1312, loaded: false, relevance: 0.9 }],
+      };
+      yield { kind: "token", text: "Carga Salud." };
+      yield { kind: "done" };
+    });
+
+    useCopilotStore.setState({ input: "qué categorías cargo" });
+    await useCopilotStore.getState().send();
+
+    const messages = useCopilotStore.getState().conversations[0].messages;
+    const assistant = messages[messages.length - 1];
+    expect(assistant.categories).toHaveLength(1);
+    expect(assistant.categories?.[0].name).toBe("Salud y Protección Social");
+    expect(assistant.query).toBe("suicidio juvenil");
+  });
+
+  it("loadCategoryAndRetry ingiere la categoría, reconstruye el índice y reintenta la consulta", async () => {
+    catalog.ingest.mockResolvedValue({ datasetsIngested: 1312 });
+    search.buildIndex.mockResolvedValue({ indexed: 1312 });
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "token", text: "listo" };
+      yield { kind: "done" };
+    });
+
+    await useCopilotStore.getState().loadCategoryAndRetry("Salud y Protección Social", "suicidio juvenil");
+
+    expect(catalog.ingest).toHaveBeenCalledWith({ categories: ["Salud y Protección Social"] });
+    expect(search.buildIndex).toHaveBeenCalled();
+    expect(chat.stream).toHaveBeenCalledWith("suicidio juvenil", null, expect.any(AbortSignal));
+    expect(useCopilotStore.getState().loadingCategory).toBeNull();
+  });
+
+  it("loadCategoryAndRetry marca error si la carga falla", async () => {
+    catalog.ingest.mockRejectedValue(new Error("falló la ingesta"));
+
+    await useCopilotStore.getState().loadCategoryAndRetry("Transporte", "accidentalidad vial");
+
+    expect(useCopilotStore.getState().status).toBe("error");
+    expect(useCopilotStore.getState().loadingCategory).toBeNull();
   });
 });

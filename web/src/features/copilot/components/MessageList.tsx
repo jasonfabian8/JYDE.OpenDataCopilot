@@ -10,6 +10,8 @@ export function MessageList(): ReactElement {
   const agent: string | null = useCopilotStore((state) => state.agent);
   const streamingAnswer: string = useCopilotStore((state) => state.streamingAnswer);
   const streamingSources = useCopilotStore((state) => state.streamingSources);
+  const streamingCategories = useCopilotStore((state) => state.streamingCategories);
+  const streamingQuery = useCopilotStore((state) => state.streamingQuery);
 
   const active: Conversation | undefined = conversations.find((c) => c.id === activeId);
   const messages: ReadonlyArray<CopilotMessage> = active?.messages ?? [];
@@ -35,6 +37,8 @@ export function MessageList(): ReactElement {
               content: streamingAnswer,
               agent: agent ?? undefined,
               sources: streamingSources ?? undefined,
+              categories: streamingCategories ?? undefined,
+              query: streamingQuery ?? undefined,
             }}
             streaming
           />

@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from "react";
 import { Sidebar } from "./Sidebar.tsx";
 import { ChatView } from "./ChatView.tsx";
+import { SettingsModal } from "./SettingsModal.tsx";
 
 /** Raíz de la app del Copilot: barra lateral + área de chat, a pantalla completa (tema oscuro). */
 export function CopilotApp(): ReactElement {
@@ -11,6 +12,7 @@ export function CopilotApp(): ReactElement {
     <div className="flex h-dvh overflow-hidden bg-night font-sans text-night-ink">
       <Sidebar open={sidebarOpen} onToggle={toggleSidebar} />
       <ChatView sidebarOpen={sidebarOpen} onToggleSidebar={toggleSidebar} />
+      <SettingsModal />
     </div>
   );
 }

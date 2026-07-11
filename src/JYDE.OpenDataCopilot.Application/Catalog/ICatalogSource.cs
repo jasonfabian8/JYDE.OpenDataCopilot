@@ -16,4 +16,9 @@ public interface ICatalogSource
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <returns>Secuencia asíncrona de datasets.</returns>
     IAsyncEnumerable<Dataset> FetchAsync(CatalogFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>Lista las categorías temáticas disponibles en la fuente, con su conteo de datasets.</summary>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>Categorías del catálogo (para acotar la ingesta por temas).</returns>
+    Task<IReadOnlyList<CatalogCategory>> GetCategoriesAsync(CancellationToken cancellationToken = default);
 }

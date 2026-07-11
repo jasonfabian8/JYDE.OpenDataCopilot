@@ -266,6 +266,41 @@ public sealed class SocrataCatalogClientTests
     }
 
     [Fact]
+    public async Task GetCategoriesAsync_MapeaOrdenaPorConteo_YOmiteVacias()
+    {
+        string body = """
+        {
+          "results": [
+            { "domain_category": "Educación", "count": 1372 },
+            { "domain_category": "Transporte", "count": 261 },
+            { "domain_category": "", "count": 9 },
+            { "domain_category": "Salud", "count": 1312 }
+          ],
+          "resultSetSize": 4
+        }
+        """;
+        FakeHttpMessageHandler handler = new(body);
+        SocrataCatalogClient client = CreateClient(handler);
+
+        IReadOnlyList<CatalogCategory> categories = await client.GetCategoriesAsync(TestContext.Current.CancellationToken);
+
+        categories.Select(category => category.Name).ShouldBe(["Educación", "Salud", "Transporte"]);
+        categories[0].Count.ShouldBe(1372);
+        handler.Requests[0].AbsolutePath.ShouldContain("domain_categories");
+        handler.Requests[0].Query.ShouldContain("domains=www.datos.gov.co");
+    }
+
+    [Fact]
+    public async Task GetCategoriesAsync_ConRespuestaNula_DevuelveVacio()
+    {
+        SocrataCatalogClient client = CreateClient(new FakeHttpMessageHandler("null"));
+
+        IReadOnlyList<CatalogCategory> categories = await client.GetCategoriesAsync(TestContext.Current.CancellationToken);
+
+        categories.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Constructor_ConArgumentosInvalidos_Lanza()
     {
         HttpClient httpClient = new(new FakeHttpMessageHandler());

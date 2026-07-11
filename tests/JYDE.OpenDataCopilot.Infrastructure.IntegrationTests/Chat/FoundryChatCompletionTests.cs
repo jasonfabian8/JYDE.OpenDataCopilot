@@ -3,7 +3,6 @@ using JYDE.OpenDataCopilot.Infrastructure.Chat;
 using JYDE.OpenDataCopilot.Infrastructure.Foundry;
 using JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Foundry;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Chat;
 

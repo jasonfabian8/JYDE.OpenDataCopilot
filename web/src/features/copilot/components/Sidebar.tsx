@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
 import { useCopilotStore, type Conversation } from "../state/useCopilotStore.ts";
+import { useSettingsStore } from "../state/useSettingsStore.ts";
 import { BrandMark } from "./BrandMark.tsx";
-import { ChatBubbleIcon, HomeIcon, PanelIcon, PlusIcon } from "./icons.tsx";
+import { ChatBubbleIcon, GearIcon, HomeIcon, PanelIcon, PlusIcon } from "./icons.tsx";
 
 /** Barra lateral: marca, «Nuevo chat», lista de conversaciones de la sesión y pie. */
 export function Sidebar({
@@ -16,6 +17,7 @@ export function Sidebar({
   const status: string = useCopilotStore((state) => state.status);
   const newConversation = useCopilotStore((state) => state.newConversation);
   const selectConversation = useCopilotStore((state) => state.selectConversation);
+  const openSettings = useSettingsStore((state) => state.openSettings);
 
   if (!open) {
     return null;
@@ -87,6 +89,14 @@ export function Sidebar({
         </nav>
 
         <div className="border-t border-night-line p-3">
+          <button
+            type="button"
+            onClick={(): void => openSettings()}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-night-soft transition hover:bg-night-3/60 hover:text-night-ink"
+          >
+            <GearIcon className="h-4 w-4" />
+            Configuraciones
+          </button>
           <a
             href="/"
             className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-night-soft transition hover:bg-night-3/60 hover:text-night-ink"

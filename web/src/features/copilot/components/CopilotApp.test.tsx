@@ -6,6 +6,8 @@ import { chatApi } from "../../../shared/api/client.ts";
 
 vi.mock("../../../shared/api/client.ts", () => ({
   chatApi: { stream: vi.fn() },
+  catalogApi: { count: vi.fn(), ingest: vi.fn(), categories: vi.fn() },
+  searchApi: { buildIndex: vi.fn() },
 }));
 
 const chat = vi.mocked(chatApi);

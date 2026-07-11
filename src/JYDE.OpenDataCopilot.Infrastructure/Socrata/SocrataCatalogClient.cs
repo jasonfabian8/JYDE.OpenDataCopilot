@@ -49,6 +49,28 @@ public sealed class SocrataCatalogClient : ICatalogSource
         return FetchPagedAsync(filter, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<CatalogCategory>> GetCategoriesAsync(CancellationToken cancellationToken = default)
+    {
+        string domain = _options.BaseAddress.Host;
+        Uri url = new(_options.BaseAddress, $"api/catalog/v1/domain_categories?domains={Uri.EscapeDataString(domain)}");
+
+        SocrataDomainCategoriesResponse? response =
+            await _httpClient.GetFromJsonAsync<SocrataDomainCategoriesResponse>(url, JsonOptions, cancellationToken);
+        if (response is null)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. response.Results
+                .Where(item => !string.IsNullOrWhiteSpace(item.DomainCategory))
+                .Select(item => new CatalogCategory(item.DomainCategory!, item.Count))
+                .OrderByDescending(category => category.Count)
+        ];
+    }
+
     /// <summary>Itera el catálogo paginando la API de Socrata hasta agotar resultados o el límite.</summary>
     private async IAsyncEnumerable<Dataset> FetchPagedAsync(
         CatalogFilter filter,

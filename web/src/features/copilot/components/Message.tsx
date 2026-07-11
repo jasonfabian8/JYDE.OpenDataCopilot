@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import type { CopilotMessage } from "../state/useCopilotStore.ts";
 import { Sources } from "./Sources.tsx";
+import { CategoryActions } from "./CategoryActions.tsx";
 
 /** Indicador de «pensando» mientras llega el primer token. */
 function ThinkingDots(): ReactElement {
@@ -45,6 +46,9 @@ export function Message({
         message.content.length > 0 && (
           <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-night-ink">{message.content}</div>
         )
+      )}
+      {message.categories !== undefined && message.categories.length > 0 && (
+        <CategoryActions categories={message.categories} query={message.query ?? ""} />
       )}
     </div>
   );

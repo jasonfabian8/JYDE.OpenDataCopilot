@@ -51,6 +51,7 @@ public sealed class ChatController : ControllerBase
         {
             ConversationEventKind.Agent => new { agent = conversationEvent.Agent },
             ConversationEventKind.Sources => new { sources = conversationEvent.Sources },
+            ConversationEventKind.Categories => new { query = conversationEvent.Query, categories = conversationEvent.Categories },
             ConversationEventKind.Token => new { text = conversationEvent.Token },
             ConversationEventKind.Conversation => new { conversationId = conversationEvent.ConversationId },
             _ => new { },

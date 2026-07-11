@@ -48,10 +48,28 @@ describe("catalogApi", () => {
   it("ingest con límite lo incluye en el body", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ datasetsIngested: 3 }));
 
-    await catalogApi.ingest(3);
+    await catalogApi.ingest({ limit: 3 });
 
     const body: unknown = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body).toEqual({ limit: 3 });
+  });
+
+  it("ingest con categorías las incluye en el body", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ datasetsIngested: 10 }));
+
+    await catalogApi.ingest({ categories: ["Transporte", "Educación"] });
+
+    const body: unknown = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toEqual({ categories: ["Transporte", "Educación"] });
+  });
+
+  it("categories devuelve la lista del backend", async () => {
+    fetchMock.mockResolvedValue(jsonResponse([{ name: "Transporte", count: 261 }]));
+
+    const result = await catalogApi.categories();
+
+    expect(result).toEqual([{ name: "Transporte", count: 261 }]);
+    expect(fetchMock).toHaveBeenCalledWith("/catalog/categories", expect.anything());
   });
 
   it("lanza un error descriptivo ante un status no-ok", async () => {

@@ -38,6 +38,21 @@ public sealed class LocalHashingEmbeddingGenerator : IEmbeddingGenerator
         return Task.FromResult<IReadOnlyList<float>>(vector);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<IReadOnlyList<float>>> GenerateBatchAsync(
+        IReadOnlyList<string> texts,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(texts);
+        List<IReadOnlyList<float>> vectors = new(texts.Count);
+        foreach (string text in texts)
+        {
+            vectors.Add(await GenerateAsync(text, cancellationToken));
+        }
+
+        return vectors;
+    }
+
     /// <summary>Divide el texto en términos en minúsculas (separadores no alfanuméricos).</summary>
     private static IEnumerable<string> Tokenize(string? text)
     {

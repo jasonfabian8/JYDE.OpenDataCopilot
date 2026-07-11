@@ -9,6 +9,9 @@ public enum ConversationEventKind
     /// <summary>Fuentes citadas (datasets) que sustentan la respuesta.</summary>
     Sources,
 
+    /// <summary>Categorías recomendadas para cargar (acciones sugeridas al usuario).</summary>
+    Categories,
+
     /// <summary>Fragmento de texto (token) de la respuesta.</summary>
     Token,
 

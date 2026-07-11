@@ -56,7 +56,7 @@ public sealed class CopilotOrchestrator
         string? previousResponseId,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        IConversationAgent agent = _router.Route(question, _agents);
+        IConversationAgent agent = await _router.RouteAsync(question, _agents, cancellationToken);
         ConversationContext context = new(question.Trim(), topK, previousResponseId);
 
         await foreach (ConversationEvent conversationEvent in agent.HandleAsync(context, cancellationToken).WithCancellation(cancellationToken))

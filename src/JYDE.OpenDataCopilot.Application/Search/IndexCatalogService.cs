@@ -41,38 +41,52 @@ public sealed class IndexCatalogService
         _batchSize = batchSize;
     }
 
-    /// <summary>Indexa todo el catálogo almacenado.</summary>
+    /// <summary>Indexa todo el catálogo almacenado, generando los embeddings por lote.</summary>
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <returns>Cantidad de datasets indexados.</returns>
     public async Task<int> ExecuteAsync(CancellationToken cancellationToken = default)
     {
         int total = 0;
-        List<DatasetVector> batch = new(_batchSize);
+        List<Dataset> batch = new(_batchSize);
 
         await foreach (Dataset dataset in _repository.GetAllAsync(cancellationToken).WithCancellation(cancellationToken))
         {
-            IReadOnlyList<float> embedding = await _embeddings.GenerateAsync(BuildText(dataset), cancellationToken);
-            batch.Add(new DatasetVector(
-                dataset.Id.Value,
-                dataset.Name,
-                dataset.Category,
-                dataset.SourceUrl?.ToString(),
-                embedding));
-            total++;
-
+            batch.Add(dataset);
             if (batch.Count >= _batchSize)
             {
-                await _index.IndexAsync(batch, cancellationToken);
+                total += await IndexBatchAsync(batch, cancellationToken);
                 batch.Clear();
             }
         }
 
         if (batch.Count > 0)
         {
-            await _index.IndexAsync(batch, cancellationToken);
+            total += await IndexBatchAsync(batch, cancellationToken);
         }
 
         return total;
+    }
+
+    /// <summary>Vectoriza un lote de datasets en una sola llamada de embeddings y lo indexa.</summary>
+    private async Task<int> IndexBatchAsync(IReadOnlyList<Dataset> datasets, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<string> texts = [.. datasets.Select(BuildText)];
+        IReadOnlyList<IReadOnlyList<float>> embeddings = await _embeddings.GenerateBatchAsync(texts, cancellationToken);
+
+        List<DatasetVector> vectors = new(datasets.Count);
+        for (int i = 0; i < datasets.Count; i++)
+        {
+            Dataset dataset = datasets[i];
+            vectors.Add(new DatasetVector(
+                dataset.Id.Value,
+                dataset.Name,
+                dataset.Category,
+                dataset.SourceUrl?.ToString(),
+                embeddings[i]));
+        }
+
+        await _index.IndexAsync(vectors, cancellationToken);
+        return vectors.Count;
     }
 
     /// <summary>Compone el texto a vectorizar a partir de los metadatos del dataset.</summary>

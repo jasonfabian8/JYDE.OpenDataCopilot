@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import { chatApi, type ChatEvent, type ChatSource } from "../../../shared/api/client.ts";
+import {
+  catalogApi,
+  chatApi,
+  searchApi,
+  type ChatCategory,
+  type ChatEvent,
+  type ChatSource,
+} from "../../../shared/api/client.ts";
 
 /** Mensaje de una conversación del Copilot. */
 export interface CopilotMessage {
@@ -11,6 +18,10 @@ export interface CopilotMessage {
   readonly agent?: string;
   /** Fuentes citadas (solo en mensajes del asistente). */
   readonly sources?: ReadonlyArray<ChatSource>;
+  /** Categorías recomendadas para cargar (acciones sugeridas). */
+  readonly categories?: ReadonlyArray<ChatCategory>;
+  /** Consulta a reintentar tras cargar una categoría. */
+  readonly query?: string;
 }
 
 /** Una conversación (hilo) mantenida en memoria durante la sesión actual. */
@@ -44,6 +55,12 @@ interface CopilotState {
   readonly streamingAnswer: string;
   /** Fuentes citadas del turno en curso. */
   readonly streamingSources: ReadonlyArray<ChatSource> | null;
+  /** Categorías recomendadas del turno en curso. */
+  readonly streamingCategories: ReadonlyArray<ChatCategory> | null;
+  /** Consulta a reintentar del turno en curso. */
+  readonly streamingQuery: string | null;
+  /** Categoría que se está cargando (ingesta + reindexado) desde un botón; null si ninguna. */
+  readonly loadingCategory: string | null;
   /** Último error, si lo hubo. */
   readonly error: string | null;
   /** Actualiza el texto de entrada. */
@@ -54,6 +71,8 @@ interface CopilotState {
   readonly selectConversation: (id: string) => void;
   /** Envía la pregunta actual y transmite la respuesta. */
   readonly send: () => Promise<void>;
+  /** Carga una categoría (ingesta + reindexado) y reintenta la consulta original. */
+  readonly loadCategoryAndRetry: (categoryName: string, query: string) => Promise<void>;
 }
 
 function newConversationRecord(): Conversation {
@@ -72,6 +91,9 @@ export function initialCopilotState(): Pick<
   | "agent"
   | "streamingAnswer"
   | "streamingSources"
+  | "streamingCategories"
+  | "streamingQuery"
+  | "loadingCategory"
   | "error"
 > {
   const conversation: Conversation = newConversationRecord();
@@ -83,6 +105,9 @@ export function initialCopilotState(): Pick<
     agent: null,
     streamingAnswer: "",
     streamingSources: null,
+    streamingCategories: null,
+    streamingQuery: null,
+    loadingCategory: null,
     error: null,
   };
 }
@@ -113,16 +138,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
         return;
       }
       const fresh: Conversation = newConversationRecord();
-      set({
-        conversations: [fresh, ...get().conversations],
-        activeId: fresh.id,
-        input: "",
-        status: "idle",
-        agent: null,
-        streamingAnswer: "",
-        streamingSources: null,
-        error: null,
-      });
+      set({ ...initialCopilotState(), conversations: [fresh, ...get().conversations], activeId: fresh.id });
     },
 
     selectConversation: (id: string): void => {
@@ -130,13 +146,9 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
         return;
       }
       set({
+        ...initialCopilotState(),
+        conversations: get().conversations,
         activeId: id,
-        input: "",
-        status: "idle",
-        agent: null,
-        streamingAnswer: "",
-        streamingSources: null,
-        error: null,
       });
     },
 
@@ -153,7 +165,16 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
         title: conversation.messages.length === 0 ? deriveTitle(question) : conversation.title,
         messages: [...conversation.messages, userMessage],
       }));
-      set({ input: "", status: "streaming", agent: null, streamingAnswer: "", streamingSources: null, error: null });
+      set({
+        input: "",
+        status: "streaming",
+        agent: null,
+        streamingAnswer: "",
+        streamingSources: null,
+        streamingCategories: null,
+        streamingQuery: null,
+        error: null,
+      });
 
       const threadId: string | null =
         get().conversations.find((c) => c.id === activeId)?.threadId ?? null;
@@ -169,12 +190,21 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
           content: get().streamingAnswer,
           agent: get().agent ?? undefined,
           sources: get().streamingSources ?? undefined,
+          categories: get().streamingCategories ?? undefined,
+          query: get().streamingQuery ?? undefined,
         };
         patchConversation(activeId, (conversation) => ({
           ...conversation,
           messages: [...conversation.messages, answer],
         }));
-        set({ status: "idle", agent: null, streamingAnswer: "", streamingSources: null });
+        set({
+          status: "idle",
+          agent: null,
+          streamingAnswer: "",
+          streamingSources: null,
+          streamingCategories: null,
+          streamingQuery: null,
+        });
       } catch (error: unknown) {
         set({ status: "error", error: describe(error) });
       }
@@ -187,6 +217,9 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
           case "sources":
             set({ streamingSources: event.sources });
             break;
+          case "categories":
+            set({ streamingCategories: event.categories, streamingQuery: event.query });
+            break;
           case "token":
             set({ streamingAnswer: get().streamingAnswer + event.text });
             break;
@@ -196,6 +229,21 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
           case "done":
             break;
         }
+      }
+    },
+
+    loadCategoryAndRetry: async (categoryName: string, query: string): Promise<void> => {
+      if (get().loadingCategory !== null || get().status === "streaming") {
+        return;
+      }
+      set({ loadingCategory: categoryName, error: null });
+      try {
+        await catalogApi.ingest({ categories: [categoryName] });
+        await searchApi.buildIndex();
+        set({ loadingCategory: null, input: query });
+        await get().send();
+      } catch (error: unknown) {
+        set({ loadingCategory: null, status: "error", error: describe(error) });
       }
     },
   };

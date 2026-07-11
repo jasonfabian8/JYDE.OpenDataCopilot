@@ -11,6 +11,9 @@ internal sealed class FakeCatalogSource : ICatalogSource
 
     public FakeCatalogSource(IReadOnlyList<Dataset> datasets) => _datasets = datasets;
 
+    /// <summary>Categorías a devolver en <see cref="GetCategoriesAsync"/>.</summary>
+    public IReadOnlyList<CatalogCategory> Categories { get; init; } = [];
+
     public async IAsyncEnumerable<Dataset> FetchAsync(
         CatalogFilter filter,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -29,4 +32,7 @@ internal sealed class FakeCatalogSource : ICatalogSource
             await Task.Yield();
         }
     }
+
+    public Task<IReadOnlyList<CatalogCategory>> GetCategoriesAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(Categories);
 }
