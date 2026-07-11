@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactElement } from "react";
+import { type ReactElement, type SyntheticEvent } from "react";
 import { SectionLabel } from "../../../shared/ui/SectionLabel.tsx";
 import { useChatStore, type ChatMessage } from "../state/useChatStore.ts";
 import type { ChatSource } from "../../../shared/api/client.ts";
@@ -65,7 +65,7 @@ export function ChatPanel(): ReactElement {
 
   const isStreaming: boolean = status === "streaming";
 
-  function handleSubmit(event: FormEvent): void {
+  function handleSubmit(event: SyntheticEvent): void {
     event.preventDefault();
     send();
   }
