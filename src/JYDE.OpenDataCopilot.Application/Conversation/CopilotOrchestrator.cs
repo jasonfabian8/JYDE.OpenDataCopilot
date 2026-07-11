@@ -33,12 +33,13 @@ public sealed class CopilotOrchestrator
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <exception cref="ArgumentException">Si la pregunta está vacía.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Si <paramref name="topK"/> es menor que 1.</exception>
-    public async IAsyncEnumerable<ConversationEvent> AskAsync(
+    public IAsyncEnumerable<ConversationEvent> AskAsync(
         string question,
         int topK = DefaultTopK,
         string? previousResponseId = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
+        // Validación temprana (eager); la iteración perezosa vive en el método iterador privado.
         if (string.IsNullOrWhiteSpace(question))
         {
             throw new ArgumentException("La pregunta no puede estar vacía.", nameof(question));
@@ -46,6 +47,15 @@ public sealed class CopilotOrchestrator
 
         ArgumentOutOfRangeException.ThrowIfLessThan(topK, 1);
 
+        return AskIteratorAsync(question, topK, previousResponseId, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<ConversationEvent> AskIteratorAsync(
+        string question,
+        int topK,
+        string? previousResponseId,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         IConversationAgent agent = _router.Route(question, _agents);
         ConversationContext context = new(question.Trim(), topK, previousResponseId);
 

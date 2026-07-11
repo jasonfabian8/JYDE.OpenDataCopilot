@@ -39,11 +39,19 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
     public bool CanHandle(string question) => true;
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<ConversationEvent> HandleAsync(
+    public IAsyncEnumerable<ConversationEvent> HandleAsync(
         ConversationContext context,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
+        // Validación temprana (eager); la iteración perezosa vive en el método iterador privado.
         ArgumentNullException.ThrowIfNull(context);
+        return HandleIteratorAsync(context, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<ConversationEvent> HandleIteratorAsync(
+        ConversationContext context,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         yield return ConversationEvent.ForAgent(Name);
 
         IReadOnlyList<float> queryEmbedding = await _embeddings.GenerateAsync(context.Question, cancellationToken);

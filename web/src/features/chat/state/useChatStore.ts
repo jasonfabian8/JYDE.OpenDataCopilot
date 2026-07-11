@@ -3,6 +3,8 @@ import { chatApi, type ChatEvent, type ChatSource } from "../../../shared/api/cl
 
 /** Mensaje de la conversación. */
 export interface ChatMessage {
+  /** Identificador estable del mensaje (clave de render). */
+  readonly id: string;
   readonly role: "user" | "assistant";
   readonly content: string;
   readonly agent?: string;
@@ -69,7 +71,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return;
     }
 
-    const userMessage: ChatMessage = { role: "user", content: question };
+    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: "user", content: question };
     set({
       messages: [...get().messages, userMessage],
       input: "",
@@ -87,6 +89,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       const answer: ChatMessage = {
+        id: crypto.randomUUID(),
         role: "assistant",
         content: get().streamingAnswer,
         agent: get().agent ?? undefined,

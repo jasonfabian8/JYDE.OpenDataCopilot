@@ -67,12 +67,12 @@ export function ChatPanel(): ReactElement {
 
   function handleSubmit(event: FormEvent): void {
     event.preventDefault();
-    void send();
+    send();
   }
 
   function handleSuggestion(text: string): void {
     setInput(text);
-    void send();
+    send();
   }
 
   return (
@@ -100,13 +100,14 @@ export function ChatPanel(): ReactElement {
         </p>
 
         <div className="mt-10 space-y-5">
-          {messages.map((message, index) => (
-            <Bubble key={index} message={message} />
+          {messages.map((message) => (
+            <Bubble key={message.id} message={message} />
           ))}
 
           {isStreaming && (
             <Bubble
               message={{
+                id: "streaming",
                 role: "assistant",
                 content: streamingAnswer,
                 agent: agent ?? undefined,

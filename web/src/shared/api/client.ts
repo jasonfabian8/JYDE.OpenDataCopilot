@@ -86,13 +86,13 @@ function parseSseFrame(frame: string): ChatEvent | null {
   const payload: Record<string, unknown> = data.length > 0 ? JSON.parse(data) : {};
   switch (eventName) {
     case "agent":
-      return { kind: "agent", agent: String(payload.agent ?? "") };
+      return { kind: "agent", agent: typeof payload.agent === "string" ? payload.agent : "" };
     case "sources":
       return { kind: "sources", sources: (payload.sources as ReadonlyArray<ChatSource>) ?? [] };
     case "token":
-      return { kind: "token", text: String(payload.text ?? "") };
+      return { kind: "token", text: typeof payload.text === "string" ? payload.text : "" };
     case "conversation":
-      return { kind: "conversation", conversationId: String(payload.conversationId ?? "") };
+      return { kind: "conversation", conversationId: typeof payload.conversationId === "string" ? payload.conversationId : "" };
     case "done":
       return { kind: "done" };
     default:
