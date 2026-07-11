@@ -81,21 +81,15 @@ public sealed class LlmAgentRouter : IAgentRouter
 
     private static string? ParseAgentName(string text)
     {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        int start = text.IndexOf('{');
-        int end = text.LastIndexOf('}');
-        if (start < 0 || end <= start)
+        string? json = JsonText.FirstJsonObject(text);
+        if (json is null)
         {
             return null;
         }
 
         try
         {
-            RouterReply? reply = JsonSerializer.Deserialize<RouterReply>(text[start..(end + 1)], JsonOptions);
+            RouterReply? reply = JsonSerializer.Deserialize<RouterReply>(json, JsonOptions);
             return string.IsNullOrWhiteSpace(reply?.Agente) ? null : reply.Agente.Trim();
         }
         catch (JsonException)

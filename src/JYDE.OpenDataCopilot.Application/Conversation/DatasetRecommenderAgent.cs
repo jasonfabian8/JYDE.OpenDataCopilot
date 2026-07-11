@@ -138,22 +138,15 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
 
     private static RecommenderReply? TryParseReply(string text)
     {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        // El modelo puede envolver el JSON en prosa o en vallas ```; tomamos del primer '{' al último '}'.
-        int start = text.IndexOf('{');
-        int end = text.LastIndexOf('}');
-        if (start < 0 || end <= start)
+        string? json = JsonText.FirstJsonObject(text);
+        if (json is null)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<RecommenderReply>(text[start..(end + 1)], JsonOptions);
+            return JsonSerializer.Deserialize<RecommenderReply>(json, JsonOptions);
         }
         catch (JsonException)
         {

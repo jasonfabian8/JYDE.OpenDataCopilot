@@ -187,6 +187,26 @@ public sealed class CategoryRecommenderAgentTests
     }
 
     [Fact]
+    public async Task HandleAsync_ConJsonDuplicado_UsaSoloElPrimero_YNoMuestraElCrudo()
+    {
+        // Reproduce el bug: Foundry devolvió el objeto DUPLICADO ({json}{json}).
+        FakeCatalogSource source = Source(("Gastos Gubernamentales", 828));
+        InMemoryCatalogRepository repository = await RepoWithLoadedAsync();
+        string one = "{\"respuesta\":\"Carga Gastos.\",\"consulta\":\"mortalidad\",\"categorias\":[{\"nombre\":\"Gastos Gubernamentales\",\"relevancia\":0.7}]}";
+        StubChatCompletion chat = new(one + one);
+        CategoryRecommenderAgent agent = new(source, repository, chat);
+
+        List<ConversationEvent> events = await CollectAsync(agent.HandleAsync(
+            new ConversationContext("mortalidad", 5), TestContext.Current.CancellationToken));
+
+        events.Single(e => e.Kind == ConversationEventKind.Categories)
+            .Categories.ShouldNotBeNull().ShouldHaveSingleItem().Name.ShouldBe("Gastos Gubernamentales");
+        string streamed = string.Concat(events.Where(e => e.Kind == ConversationEventKind.Token).Select(e => e.Token ?? string.Empty));
+        streamed.ShouldContain("Carga Gastos.");
+        streamed.ShouldNotContain("relevancia"); // no se transmite el JSON crudo
+    }
+
+    [Fact]
     public async Task HandleAsync_ConTextoVacioDelLlm_NoRompe()
     {
         CategoryRecommenderAgent agent = new(Source(("Salud", 1)), await RepoWithLoadedAsync(), new StubChatCompletion(string.Empty));

@@ -148,21 +148,15 @@ public sealed class CategoryRecommenderAgent : IConversationAgent
 
     private static CategoryRecommenderReply? TryParseReply(string text)
     {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        int start = text.IndexOf('{');
-        int end = text.LastIndexOf('}');
-        if (start < 0 || end <= start)
+        string? json = JsonText.FirstJsonObject(text);
+        if (json is null)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<CategoryRecommenderReply>(text[start..(end + 1)], JsonOptions);
+            return JsonSerializer.Deserialize<CategoryRecommenderReply>(json, JsonOptions);
         }
         catch (JsonException)
         {

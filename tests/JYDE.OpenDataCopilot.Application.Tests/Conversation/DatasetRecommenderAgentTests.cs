@@ -149,6 +149,45 @@ public sealed class DatasetRecommenderAgentTests
     }
 
     [Fact]
+    public async Task HandleAsync_ConJsonDuplicadoYLlavesEnString_ParseaElPrimero()
+    {
+        CapturingSearchIndex index = new()
+        {
+            NextResults = [new DatasetSearchHit("aaaa-0001", "Uno", "Cat", "https://x", 0.6)],
+        };
+        // '}' dentro de un string y comillas escapadas, además el objeto DUPLICADO.
+        string one = "{\"respuesta\":\"cierra } y dice \\\"hola\\\"\",\"datasets\":[{\"id\":\"aaaa-0001\",\"relevancia\":0.9}]}";
+        StubChatCompletion chat = new(one + one);
+        DatasetRecommenderAgent agent = new(new StubEmbeddingGenerator(), index, chat);
+
+        List<ConversationEvent> events = await CollectAsync(
+            agent.HandleAsync(new ConversationContext("consulta", 3), TestContext.Current.CancellationToken));
+
+        events.Single(e => e.Kind == ConversationEventKind.Sources)
+            .Sources.ShouldNotBeNull().ShouldHaveSingleItem().DatasetId.ShouldBe("aaaa-0001");
+        string streamed = string.Concat(events.Where(e => e.Kind == ConversationEventKind.Token).Select(e => e.Token ?? string.Empty));
+        streamed.ShouldContain("cierra }");
+        streamed.ShouldNotContain("relevancia");
+    }
+
+    [Fact]
+    public async Task HandleAsync_ConJsonSinCerrar_Degrada_SinCitar()
+    {
+        CapturingSearchIndex index = new()
+        {
+            NextResults = [new DatasetSearchHit("aaaa-0001", "Uno", "Cat", "https://x", 0.6)],
+        };
+        StubChatCompletion chat = new("{\"respuesta\":\"sin cerrar\",\"datasets\":[{\"id\":\"aaaa-0001\"");
+        DatasetRecommenderAgent agent = new(new StubEmbeddingGenerator(), index, chat);
+
+        List<ConversationEvent> events = await CollectAsync(
+            agent.HandleAsync(new ConversationContext("consulta", 3), TestContext.Current.CancellationToken));
+
+        events.ShouldNotContain(e => e.Kind == ConversationEventKind.Sources);
+        events.Where(e => e.Kind == ConversationEventKind.Token).ShouldNotBeEmpty();
+    }
+
+    [Fact]
     public async Task HandleAsync_ConTextoVacioDelLlm_NoRompe_YNoCita()
     {
         StubChatCompletion chat = new(string.Empty);
