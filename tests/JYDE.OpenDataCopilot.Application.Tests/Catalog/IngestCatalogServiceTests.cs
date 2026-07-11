@@ -9,7 +9,7 @@ public sealed class IngestCatalogServiceTests
 {
     private static Dataset Sample(string id) => new(new DatasetId(id), $"Dataset {id}");
 
-    private static IReadOnlyList<Dataset> Samples(params string[] ids)
+    private static List<Dataset> Samples(params string[] ids)
         => ids.Select(Sample).ToList();
 
     [Fact]

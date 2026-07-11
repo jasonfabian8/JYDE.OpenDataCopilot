@@ -15,6 +15,12 @@ public sealed class SocrataCatalogOptions
     /// <summary>Timeout (en segundos) de cada petición HTTP a Socrata (por defecto 30).</summary>
     public int TimeoutSeconds { get; set; } = 30;
 
+    /// <summary>
+    /// Cota dura de resultados cuando el usuario pide un límite explícito. Evita que el bucle de
+    /// paginación quede gobernado por datos del usuario (defensa DoS, CWE-834). Por defecto 10000.
+    /// </summary>
+    public int MaxResults { get; set; } = 10000;
+
     /// <summary>App Token opcional de Socrata para elevar los límites de tasa (cabecera X-App-Token).</summary>
     public string? AppToken { get; set; }
 }
