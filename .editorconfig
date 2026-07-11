@@ -60,15 +60,3 @@ dotnet_diagnostic.CA1822.severity = suggestion   # marcar miembros como static c
 dotnet_diagnostic.IDE0059.severity = warning     # asignación de valor innecesaria
 dotnet_diagnostic.IDE0060.severity = warning     # parámetro no usado
 dotnet_diagnostic.CA2007.severity = none         # no exigir ConfigureAwait en la app
-
-# ----------------------------------------------------------------------------
-# Excepción: punto de entrada con top-level statements (Program.Partial.cs).
-# El `Program` que genera el compilador vive en el namespace GLOBAL; su `partial`
-# debe permanecer también en el namespace global para fusionarse con él (así el
-# [ExcludeFromCodeCoverage] aplica al entry point real y habilita
-# WebApplicationFactory<Program> en tests de integración). Por eso se desactivan
-# aquí las reglas que exigen moverlo a un namespace con nombre — no aplica al idiom.
-# ----------------------------------------------------------------------------
-[**/Program.Partial.cs]
-dotnet_diagnostic.S3903.severity = none   # Sonar: Types should be defined in named namespaces
-dotnet_diagnostic.CA1050.severity = none  # .NET: Declare types in namespaces

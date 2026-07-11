@@ -1,6 +1,5 @@
 using JYDE.OpenDataCopilot.Infrastructure.Mongo;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Mongo;
 

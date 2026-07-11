@@ -1,10 +1,20 @@
 {
   "// NOTA": "Copia este archivo como appsettings.Development.json (gitignored) y pon tu cadena real. NO commitees secretos.",
   "Providers": {
-    "CatalogRepository": "Mongo"
+    "CatalogRepository": "Mongo",
+    "SearchIndex": "Mongo",
+    "Embeddings": "Local"
   },
   "Mongo": {
     "ConnectionString": "mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/?appName=<app>",
     "Database": "odc_BD"
+  },
+  "// Para usar Foundry": "Cambia Providers:Embeddings a 'Foundry' y completa esta sección (NO commitees la clave).",
+  "Foundry": {
+    "Endpoint": "https://<recurso>.openai.azure.com",
+    "ApiKey": "<clave>",
+    "EmbeddingDeployment": "text-embedding-3-small",
+    "ApiVersion": "2024-02-01",
+    "Dimensions": 1536
   }
 }

@@ -45,6 +45,8 @@
 | [0010](../adr/0010-api-con-controladores.md) | API con controladores MVC (no Minimal API) |
 | [0011](../adr/0011-api-no-referencia-dominio.md) | La API no referencia el Domain; consume DTOs de Application |
 | [0012](../adr/0012-persistencia-mongodb-atlas.md) | Persistencia con MongoDB Atlas (driver y almacén del catálogo) |
+| [0013](../adr/0013-embeddings-foundry-y-local-dev.md) | Embeddings: Foundry (objetivo) + adaptador local para dev |
+| [0014](../adr/0014-atlas-vector-search.md) | Índice de búsqueda con MongoDB Atlas Vector Search |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).
@@ -89,7 +91,7 @@ Api ──► Infrastructure ──► Application ──► Domain
 | Contexto | Responsabilidad | Puertos principales | Adaptadores |
 |----------|-----------------|---------------------|-------------|
 | **Catalog** | Ingestar/almacenar metadatos del catálogo | `ICatalogSource`, `ICatalogRepository` | `SocrataCatalogClient`; `InMemory`/`Mongo` (repositorio) |
-| **Search** | Indexar y recuperar datasets (vector + keyword) | `IDatasetSearchIndex`, `IEmbeddingGenerator` | `PgVector`/`AzureAISearch`/`Qdrant`, `FoundryEmbeddings` |
+| **Search** | Indexar y recuperar datasets (vector + keyword) | `IDatasetSearchIndex`, `IEmbeddingGenerator` | `InMemory`/`Mongo` (Atlas Vector Search) índice; `Local`/`Foundry` embeddings |
 | **Conversation** | Orquestar pregunta → respuesta citada | `IChatCompletion`, `IDataQuery`, `IConversationStore` | `FoundryChatCompletion`, `SocrataDataQuery` |
 | **DataCache** | Cachear datasets seleccionados | `IDatasetCache` | `DuckDb`/`Postgres` (local), `MongoAtlas` (prod) |
 

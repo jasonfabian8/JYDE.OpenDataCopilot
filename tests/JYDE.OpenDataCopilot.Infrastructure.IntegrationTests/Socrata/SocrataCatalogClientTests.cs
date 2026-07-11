@@ -2,7 +2,6 @@ using JYDE.OpenDataCopilot.Application.Catalog;
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using JYDE.OpenDataCopilot.Infrastructure.Socrata;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Socrata;
 
@@ -161,6 +160,18 @@ public sealed class SocrataCatalogClientTests
     }
 
     [Fact]
+    public async Task FetchAsync_AcotaAlDominioConfigurado()
+    {
+        FakeHttpMessageHandler handler = new(ResponseJson(1, ResultJson("aaaa-0001", "Uno")));
+        SocrataCatalogClient client = CreateClient(handler);
+
+        await CollectAsync(client, CatalogFilter.All);
+
+        handler.Requests[0].Query.ShouldContain("domains=www.datos.gov.co");
+        handler.Requests[0].Query.ShouldContain("search_context=www.datos.gov.co");
+    }
+
+    [Fact]
     public async Task FetchAsync_MapeaColumnasConArreglosFaltantes_UsaValoresPorDefecto()
     {
         string body = """
@@ -198,6 +209,46 @@ public sealed class SocrataCatalogClientTests
         await CollectAsync(client, CatalogFilter.All);
 
         handler.LastAppToken.ShouldBe("tok-123");
+    }
+
+    [Fact]
+    public async Task FetchAsync_ConRespuestaNula_NoEmiteNada()
+    {
+        // La API responde con un cuerpo JSON nulo: el deserializado es null y no debe romper.
+        SocrataCatalogClient client = CreateClient(new FakeHttpMessageHandler("null"));
+
+        List<Dataset> datasets = await CollectAsync(client, CatalogFilter.All);
+
+        datasets.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task FetchAsync_ConArreglosDeColumnasMasCortos_UsaValoresPorDefecto()
+    {
+        string body = """
+        {
+          "results": [
+            {
+              "resource": {
+                "id": "aaaa-0011",
+                "name": "Columnas desparejas",
+                "columns_name": ["Municipio", "Edad"],
+                "columns_field_name": ["municipio"]
+              }
+            }
+          ],
+          "resultSetSize": 1
+        }
+        """;
+        SocrataCatalogClient client = CreateClient(new FakeHttpMessageHandler(body));
+
+        List<Dataset> datasets = await CollectAsync(client, CatalogFilter.All);
+
+        IReadOnlyList<DatasetColumn> columns = datasets[0].Columns;
+        columns.Count.ShouldBe(2);
+        columns[0].FieldName.ShouldBe("municipio");
+        columns[1].FieldName.ShouldBe("Edad"); // sin field_name propio, cae al nombre
+        columns[1].DataType.ShouldBe("unknown");
     }
 
     [Fact]

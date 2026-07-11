@@ -1,7 +1,6 @@
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using JYDE.OpenDataCopilot.Infrastructure.Mongo;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Mongo;
 
@@ -14,12 +13,13 @@ public sealed class DatasetDocumentMappingTests
         Dataset original = new(
             new DatasetId("ddau-8cy9"),
             "Accidentalidad",
-            description: "Accidentes de tránsito",
-            category: "Movilidad",
-            tags: ["movilidad", "vias"],
-            columns: [new DatasetColumn("Municipio", "municipio", "text", "Nombre")],
-            sourceUrl: new Uri("https://www.datos.gov.co/d/ddau-8cy9"),
-            updatedAt: DateTimeOffset.UnixEpoch);
+            new DatasetMetadata(
+                description: "Accidentes de tránsito",
+                category: "Movilidad",
+                tags: ["movilidad", "vias"],
+                columns: [new DatasetColumn("Municipio", "municipio", "text", "Nombre")],
+                sourceUrl: new Uri("https://www.datos.gov.co/d/ddau-8cy9"),
+                updatedAt: DateTimeOffset.UnixEpoch));
 
         Dataset restored = DatasetDocument.FromDomain(original).ToDomain();
 

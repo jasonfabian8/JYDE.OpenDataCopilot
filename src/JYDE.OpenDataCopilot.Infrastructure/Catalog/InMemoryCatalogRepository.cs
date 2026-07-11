@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using JYDE.OpenDataCopilot.Application.Catalog;
 using JYDE.OpenDataCopilot.Domain.Catalog;
 
@@ -34,4 +35,15 @@ public sealed class InMemoryCatalogRepository : ICatalogRepository
 
     /// <inheritdoc />
     public Task<int> CountAsync(CancellationToken cancellationToken = default) => Task.FromResult(_store.Count);
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<Dataset> GetAllAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        foreach (Dataset dataset in _store.Values)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return dataset;
+            await Task.CompletedTask;
+        }
+    }
 }

@@ -14,4 +14,16 @@ public sealed class MongoOptions
 
     /// <summary>Colección donde se almacena el catálogo de datasets.</summary>
     public string CatalogCollection { get; set; } = "datasets";
+
+    /// <summary>Colección donde se almacenan los vectores para la búsqueda.</summary>
+    public string SearchCollection { get; set; } = "dataset_vectors";
+
+    /// <summary>Nombre del índice de Atlas Vector Search.</summary>
+    public string VectorIndexName { get; set; } = "dataset_vector_index";
+
+    /// <summary>Dimensión de los embeddings (debe coincidir con el generador configurado).</summary>
+    public int VectorDimensions { get; set; } = 256;
+
+    /// <summary>Número de candidatos a considerar en la búsqueda vectorial aproximada.</summary>
+    public int VectorNumCandidates { get; set; } = 100;
 }

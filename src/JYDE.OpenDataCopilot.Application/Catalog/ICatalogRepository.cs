@@ -20,4 +20,8 @@ public interface ICatalogRepository
     /// <summary>Cuenta los datasets almacenados.</summary>
     /// <param name="cancellationToken">Token de cancelación.</param>
     Task<int> CountAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Recupera todos los datasets almacenados, transmitidos de forma perezosa.</summary>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    IAsyncEnumerable<Dataset> GetAllAsync(CancellationToken cancellationToken = default);
 }

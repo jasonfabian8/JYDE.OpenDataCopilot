@@ -1,6 +1,5 @@
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Domain.Tests.Catalog;
 
@@ -55,12 +54,13 @@ public sealed class DatasetTests
         Dataset dataset = new(
             AnyId(),
             "Accidentalidad",
-            description: "Accidentes de tránsito",
-            category: "Movilidad",
-            tags: tags,
-            columns: columns,
-            sourceUrl: url,
-            updatedAt: updated);
+            new DatasetMetadata(
+                description: "Accidentes de tránsito",
+                category: "Movilidad",
+                tags: tags,
+                columns: columns,
+                sourceUrl: url,
+                updatedAt: updated));
 
         dataset.Description.ShouldBe("Accidentes de tránsito");
         dataset.Category.ShouldBe("Movilidad");

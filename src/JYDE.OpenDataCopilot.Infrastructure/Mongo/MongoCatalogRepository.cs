@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using JYDE.OpenDataCopilot.Application.Catalog;
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using MongoDB.Driver;
@@ -15,15 +16,15 @@ public sealed class MongoCatalogRepository : ICatalogRepository
 {
     private readonly IMongoCollection<DatasetDocument> _collection;
 
-    /// <summary>Crea el repositorio Mongo a partir de las opciones de conexión.</summary>
-    /// <param name="options">Opciones de conexión (cadena, base de datos, colección).</param>
-    /// <exception cref="ArgumentNullException">Si <paramref name="options"/> es nulo.</exception>
-    public MongoCatalogRepository(MongoOptions options)
+    /// <summary>Crea el repositorio Mongo usando el cliente compartido.</summary>
+    /// <param name="context">Contexto de Mongo (cliente y base de datos compartidos).</param>
+    /// <param name="options">Opciones (nombre de colección).</param>
+    /// <exception cref="ArgumentNullException">Si algún argumento es nulo.</exception>
+    public MongoCatalogRepository(MongoContext context, MongoOptions options)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(options);
-        IMongoClient client = new MongoClient(options.ConnectionString);
-        IMongoDatabase database = client.GetDatabase(options.Database);
-        _collection = database.GetCollection<DatasetDocument>(options.CatalogCollection);
+        _collection = context.Database.GetCollection<DatasetDocument>(options.CatalogCollection);
     }
 
     /// <inheritdoc />
@@ -65,5 +66,21 @@ public sealed class MongoCatalogRepository : ICatalogRepository
             FilterDefinition<DatasetDocument>.Empty,
             cancellationToken: cancellationToken);
         return (int)count;
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<Dataset> GetAllAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using IAsyncCursor<DatasetDocument> cursor = await _collection.FindAsync(
+            FilterDefinition<DatasetDocument>.Empty,
+            cancellationToken: cancellationToken);
+
+        while (await cursor.MoveNextAsync(cancellationToken))
+        {
+            foreach (DatasetDocument document in cursor.Current)
+            {
+                yield return document.ToDomain();
+            }
+        }
     }
 }

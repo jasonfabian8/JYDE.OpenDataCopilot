@@ -35,6 +35,9 @@
     <ThresholdStat>total</ThresholdStat>
     <!-- Excluir de la cobertura el código generado (p. ej. source-gen de [GeneratedRegex]). -->
     <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
+    <!-- El composition root (Program.cs, top-level statements) es arranque/configuración: se
+         excluye de la cobertura y se valida con pruebas de integración cuando aplique. -->
+    <ExcludeByFile>**/Program.cs</ExcludeByFile>
   </PropertyGroup>
 
   <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests'))">
