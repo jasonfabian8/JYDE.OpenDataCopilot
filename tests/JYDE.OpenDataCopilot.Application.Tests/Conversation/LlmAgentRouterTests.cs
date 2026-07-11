@@ -13,8 +13,23 @@ public sealed class LlmAgentRouterTests
         StubAgent category = new("category-recommender-agent");
         StubChatCompletion chat = new("{\"agente\":\"category-recommender-agent\"}");
 
-        (await new LlmAgentRouter(chat).RouteAsync("qué cargo", [dataset, category], TestContext.Current.CancellationToken))
+        (await new LlmAgentRouter(chat).RouteAsync("qué cargo", [dataset, category], cancellationToken: TestContext.Current.CancellationToken))
             .Name.ShouldBe("category-recommender-agent");
+    }
+
+    [Fact]
+    public async Task RouteAsync_IncluyeLaRespuestaAnteriorEnElInput()
+    {
+        StubAgent dataset = new("dataset-recommender-agent");
+        StubAgent category = new("category-recommender-agent");
+        StubChatCompletion chat = new("{\"agente\":\"category-recommender-agent\"}");
+
+        IConversationAgent selected = await new LlmAgentRouter(chat).RouteAsync(
+            "sí", [dataset, category], "¿Desea revisar categorías?", TestContext.Current.CancellationToken);
+
+        selected.Name.ShouldBe("category-recommender-agent");
+        chat.LastPrompt.ShouldNotBeNull().Input.ShouldContain("Respuesta anterior del Copilot: ¿Desea revisar categorías?");
+        chat.LastPrompt.Input.ShouldContain("Mensaje del usuario: sí");
     }
 
     [Fact]
@@ -23,7 +38,7 @@ public sealed class LlmAgentRouterTests
         StubAgent only = new("solo");
         StubChatCompletion chat = new("irrelevante");
 
-        (await new LlmAgentRouter(chat).RouteAsync("x", [only], TestContext.Current.CancellationToken)).Name.ShouldBe("solo");
+        (await new LlmAgentRouter(chat).RouteAsync("x", [only], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("solo");
         chat.LastPrompt.ShouldBeNull();
     }
 
@@ -34,7 +49,7 @@ public sealed class LlmAgentRouterTests
         StubAgent b = new("b", canHandle: true);
 
         (await new LlmAgentRouter(new StubChatCompletion("{\"agente\":\"inexistente\"}"))
-            .RouteAsync("x", [a, b], TestContext.Current.CancellationToken)).Name.ShouldBe("b");
+            .RouteAsync("x", [a, b], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("b");
     }
 
     [Fact]
@@ -44,11 +59,11 @@ public sealed class LlmAgentRouterTests
         StubAgent b = new("b", canHandle: true);
 
         (await new LlmAgentRouter(new StubChatCompletion("{\"agente\":\"\"}"))
-            .RouteAsync("x", [a, b], TestContext.Current.CancellationToken)).Name.ShouldBe("b");
+            .RouteAsync("x", [a, b], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("b");
         (await new LlmAgentRouter(new StubChatCompletion("{malformado}"))
-            .RouteAsync("x", [a, b], TestContext.Current.CancellationToken)).Name.ShouldBe("b");
+            .RouteAsync("x", [a, b], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("b");
         (await new LlmAgentRouter(new StubChatCompletion("sin llaves"))
-            .RouteAsync("x", [a, b], TestContext.Current.CancellationToken)).Name.ShouldBe("b");
+            .RouteAsync("x", [a, b], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("b");
     }
 
     [Fact]
@@ -58,9 +73,9 @@ public sealed class LlmAgentRouterTests
         StubAgent b = new("b", canHandle: true);
 
         (await new LlmAgentRouter(new ThrowingChatCompletion())
-            .RouteAsync("x", [a, b], TestContext.Current.CancellationToken)).Name.ShouldBe("b");
+            .RouteAsync("x", [a, b], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("b");
         (await new LlmAgentRouter(new ThrowingChatCompletion(new InvalidOperationException("x")))
-            .RouteAsync("x", [a, b], TestContext.Current.CancellationToken)).Name.ShouldBe("b");
+            .RouteAsync("x", [a, b], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("b");
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using JYDE.OpenDataCopilot.Api.Controllers;
 using JYDE.OpenDataCopilot.Api.Conversation;
 using JYDE.OpenDataCopilot.Api.Tests.Conversation;
 using JYDE.OpenDataCopilot.Application.Conversation;
+using JYDE.OpenDataCopilot.Infrastructure.Chat;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
@@ -16,6 +17,10 @@ public sealed class ChatControllerTests
         ConversationEvent.ForAgent("dataset-recommender-agent"),
         ConversationEvent.ForSources([new Citation("aaaa-0001", "Cobertura de salud", "https://datos.gov.co/d/aaaa-0001", 0.9)]),
         ConversationEvent.ForCategories("salud", [new CategoryRecommendation("Salud y Protección Social", 1312, false, 0.9)]),
+        ConversationEvent.ForObjective("analizar la mortalidad"),
+        ConversationEvent.ForAudit([new AgentInteraction("router-agent", "entrada", "salida")]),
+        ConversationEvent.ForTable(new TableArtifact("Mortalidad", ["genero", "total"], [["Masculino", "120"]])),
+        ConversationEvent.ForChart(new ChartArtifact("Mortalidad", "bar", "genero", "total")),
         ConversationEvent.ForToken("hola"),
         ConversationEvent.ForConversation("resp-1"),
         ConversationEvent.Completed(),
@@ -24,7 +29,8 @@ public sealed class ChatControllerTests
     private static ChatController BuildController(MemoryStream responseBody, params ConversationEvent[] events)
     {
         FixedEventsAgent agent = new(events.Length > 0 ? events : AllEventKinds());
-        CopilotOrchestrator orchestrator = new([agent], new DefaultAgentRouter());
+        CopilotOrchestrator orchestrator = new(
+            [agent], new DefaultAgentRouter(), new ObjectiveTracker(new FakeChatCompletion()), new InteractionRecorder());
 
         DefaultHttpContext httpContext = new();
         httpContext.Response.Body = responseBody;
@@ -48,6 +54,10 @@ public sealed class ChatControllerTests
         sse.ShouldContain("event: agent");
         sse.ShouldContain("event: sources");
         sse.ShouldContain("event: categories");
+        sse.ShouldContain("event: objective");
+        sse.ShouldContain("event: audit");
+        sse.ShouldContain("event: table");
+        sse.ShouldContain("event: chart");
         sse.ShouldContain("event: token");
         sse.ShouldContain("event: conversation");
         sse.ShouldContain("event: done");

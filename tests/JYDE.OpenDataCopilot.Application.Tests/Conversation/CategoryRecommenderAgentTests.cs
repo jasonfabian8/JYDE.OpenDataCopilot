@@ -207,6 +207,24 @@ public sealed class CategoryRecommenderAgentTests
     }
 
     [Fact]
+    public async Task HandleAsync_ConJsonMalformado_RescataLaRespuesta_SinMostrarElCrudo()
+    {
+        FakeCatalogSource source = Source(("Salud", 1312));
+        InMemoryCatalogRepository repository = await RepoWithLoadedAsync();
+        // JSON malformado (categoría sin valor) → no parsea; se rescata "respuesta", no se muestra el crudo.
+        StubChatCompletion chat = new("{\"respuesta\":\"Hola, esto es legible.\",\"categorias\":[{\"nombre\":}]}");
+        CategoryRecommenderAgent agent = new(source, repository, chat);
+
+        List<ConversationEvent> events = await CollectAsync(agent.HandleAsync(
+            new ConversationContext("categorías", 5), TestContext.Current.CancellationToken));
+
+        string streamed = string.Concat(events.Where(e => e.Kind == ConversationEventKind.Token).Select(e => e.Token ?? string.Empty));
+        streamed.ShouldContain("Hola, esto es legible.");
+        streamed.ShouldNotContain("categorias");
+        events.ShouldNotContain(e => e.Kind == ConversationEventKind.Categories);
+    }
+
+    [Fact]
     public async Task HandleAsync_ConTextoVacioDelLlm_NoRompe()
     {
         CategoryRecommenderAgent agent = new(Source(("Salud", 1)), await RepoWithLoadedAsync(), new StubChatCompletion(string.Empty));

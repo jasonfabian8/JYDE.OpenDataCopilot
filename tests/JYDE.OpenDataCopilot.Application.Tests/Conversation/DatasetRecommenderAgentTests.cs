@@ -61,6 +61,26 @@ public sealed class DatasetRecommenderAgentTests
     }
 
     [Fact]
+    public async Task HandleAsync_AnteponeElObjetivoYLosDatasetsSeleccionados_AlInput()
+    {
+        CapturingSearchIndex index = new()
+        {
+            NextResults = [new DatasetSearchHit("aaaa-0001", "Uno", "Cat", "https://x", 0.6)],
+        };
+        StubChatCompletion chat = new(Json("ok", ("aaaa-0001", 0.9)));
+        DatasetRecommenderAgent agent = new(new StubEmbeddingGenerator(), index, chat);
+
+        await CollectAsync(agent.HandleAsync(
+            new ConversationContext("dime más", 3, null, "cruzar mortalidad con deserción", ["Causas de mortalidad 2020", "Deserción escolar"]),
+            TestContext.Current.CancellationToken));
+
+        chat.LastPrompt.ShouldNotBeNull();
+        chat.LastPrompt.Input.ShouldContain("Objetivo del usuario");
+        chat.LastPrompt.Input.ShouldContain("cruzar mortalidad con deserción");
+        chat.LastPrompt.Input.ShouldContain("Datasets seleccionados por el usuario: Causas de mortalidad 2020, Deserción escolar");
+    }
+
+    [Fact]
     public async Task HandleAsync_ConRelevanciaBajaDelLlm_NoCita_AunqueElCosenoSeaAlto()
     {
         // El coseno es alto (0.62) pero el LLM juzga que no viene al caso (0.2): no debe citarse.
@@ -185,6 +205,25 @@ public sealed class DatasetRecommenderAgentTests
 
         events.ShouldNotContain(e => e.Kind == ConversationEventKind.Sources);
         events.Where(e => e.Kind == ConversationEventKind.Token).ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleAsync_ConJsonMalformadoSinRespuesta_MuestraMensajeLimpio()
+    {
+        CapturingSearchIndex index = new()
+        {
+            NextResults = [new DatasetSearchHit("aaaa-0001", "Uno", "Cat", "https://x", 0.6)],
+        };
+        // JSON malformado y sin "respuesta" legible → mensaje limpio, nunca el JSON crudo.
+        StubChatCompletion chat = new("{\"foo\":\"bar\",\"datasets\":[{bad}]}");
+        DatasetRecommenderAgent agent = new(new StubEmbeddingGenerator(), index, chat);
+
+        List<ConversationEvent> events = await CollectAsync(
+            agent.HandleAsync(new ConversationContext("consulta", 3), TestContext.Current.CancellationToken));
+
+        string streamed = string.Concat(events.Where(e => e.Kind == ConversationEventKind.Token).Select(e => e.Token ?? string.Empty));
+        streamed.ShouldContain("No pude interpretar");
+        streamed.ShouldNotContain("foo");
     }
 
     [Fact]

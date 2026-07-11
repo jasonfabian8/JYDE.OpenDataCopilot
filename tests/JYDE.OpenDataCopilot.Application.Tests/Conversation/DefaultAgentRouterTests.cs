@@ -14,7 +14,7 @@ public sealed class DefaultAgentRouterTests
         StubAgent siPuede = new("b", canHandle: true);
 
         IConversationAgent selected =
-            await router.RouteAsync("hola", [noPuede, siPuede], TestContext.Current.CancellationToken);
+            await router.RouteAsync("hola", [noPuede, siPuede], cancellationToken: TestContext.Current.CancellationToken);
 
         selected.Name.ShouldBe("b");
     }
@@ -26,7 +26,7 @@ public sealed class DefaultAgentRouterTests
         StubAgent a = new("a", canHandle: false);
         StubAgent b = new("b", canHandle: false);
 
-        (await router.RouteAsync("hola", [a, b], TestContext.Current.CancellationToken)).Name.ShouldBe("a");
+        (await router.RouteAsync("hola", [a, b], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("a");
     }
 
     [Fact]

@@ -79,4 +79,23 @@ public sealed class ConversationRecordsTests
         (recommendation with { Loaded = true }).ShouldNotBe(recommendation);
         recommendation.ToString().ShouldContain("Transporte");
     }
+
+    [Fact]
+    public void ConversationEvent_TablaYGrafico()
+    {
+        TableArtifact table = new("Mortalidad", ["genero", "total"], [["M", "1"], ["F", "2"]]);
+        ChartArtifact chart = new("Mortalidad", "bar", "genero", "total");
+
+        ConversationEvent tableEvent = ConversationEvent.ForTable(table);
+        tableEvent.Kind.ShouldBe(ConversationEventKind.Table);
+        tableEvent.Table.ShouldNotBeNull().Columns.ShouldBe(["genero", "total"]);
+        tableEvent.Table.Rows.Count.ShouldBe(2);
+
+        ConversationEvent chartEvent = ConversationEvent.ForChart(chart);
+        chartEvent.Kind.ShouldBe(ConversationEventKind.Chart);
+        chartEvent.Chart.ShouldNotBeNull().Type.ShouldBe("bar");
+        chartEvent.Chart.XColumn.ShouldBe("genero");
+        (chart with { Type = "line" }).ShouldNotBe(chart);
+        table.ToString().ShouldContain("Mortalidad");
+    }
 }
