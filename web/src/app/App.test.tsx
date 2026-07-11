@@ -17,7 +17,9 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("Pregúntale al Copilot")).toBeInTheDocument();
     expect(screen.getByText("Consola de ejecución")).toBeInTheDocument();
+    const copilotLinks = screen.getAllByRole("link", { name: /abrir copilot/i });
+    expect(copilotLinks.length).toBeGreaterThan(0);
+    expect(copilotLinks[0]).toHaveAttribute("href", "/copilot/");
   });
 });

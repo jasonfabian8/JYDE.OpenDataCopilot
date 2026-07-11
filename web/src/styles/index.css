@@ -23,6 +23,17 @@
   --color-verde: #128a5e;
   --color-verde-soft: #e4f4ec;
 
+  /* Superficie oscura de la app del Copilot (la landing es clara; la app es oscura).
+     Carbón cálido + azul cielo como acento legible sobre fondo oscuro. */
+  --color-night: #201e1c;
+  --color-night-2: #1a1917;
+  --color-night-3: #2b2926;
+  --color-night-line: #34302b;
+  --color-night-ink: #f3f1ea;
+  --color-night-soft: #c6c1b6;
+  --color-night-muted: #8c8578;
+  --color-sky: #7aa2ff;
+
   /* Tipografías */
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;

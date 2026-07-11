@@ -33,16 +33,16 @@ export function Hero(): ReactElement {
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <a
-              href="#demo"
+              href="/copilot/"
               className="rounded-full bg-cobalt px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"
             >
-              Ver cómo responde
+              Abrir Copilot
             </a>
             <a
-              href="#mision"
+              href="#demo"
               className="text-sm font-medium text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline"
             >
-              Por qué lo construimos →
+              Ver cómo responde →
             </a>
           </div>
 
