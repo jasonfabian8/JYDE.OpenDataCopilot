@@ -290,7 +290,7 @@ web/
 - Componentes de presentación desacoplados de la obtención de datos (hooks de datos; la librería de data-fetching/cache está pendiente de concertar). Un componente/módulo por archivo.
 
 ### Calidad y pruebas
-- **TypeScript `strict`** (decidido). Linter/formatter y framework de pruebas: **pendientes por concertar** (candidatos: ESLint + Prettier, Vitest + React Testing Library), a registrar en SAD+ADR.
+- **TypeScript `strict`** (decidido). **Framework de pruebas: Vitest + React Testing Library** (decidido, [ADR-0016](../adr/0016-testing-frontend-vitest.md)); la cobertura sale en LCOV y se sube a SonarCloud junto con la del backend. Linter/formatter: **pendiente por concertar** (candidato: ESLint + Prettier), a registrar en SAD+ADR.
 - Pruebas centradas en la conducta del usuario; un componente/módulo por archivo.
 - **Accesibilidad** (roles/ARIA, navegación por teclado) y diseño responsivo como requisitos.
 

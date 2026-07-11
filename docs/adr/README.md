@@ -20,3 +20,4 @@ Registro vivo de las decisiones de arquitectura. Una decisión = un archivo nume
 | [0013](0013-embeddings-foundry-y-local-dev.md) | Embeddings: Foundry (objetivo) + adaptador local para dev | Aceptado |
 | [0014](0014-atlas-vector-search.md) | Índice de búsqueda con MongoDB Atlas Vector Search | Aceptado |
 | [0015](0015-arquitectura-multiagente.md) | Conversación: arquitectura multiagente (Copilot + agentes) | Aceptado |
+| [0016](0016-testing-frontend-vitest.md) | Testing del frontend con Vitest + React Testing Library | Aceptado |
