@@ -90,7 +90,7 @@ WebApplication app = builder.Build();
 app.UseCors(WebCorsPolicy);
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 static bool IsMongo(string provider) => string.Equals(provider, "Mongo", StringComparison.OrdinalIgnoreCase);
 
