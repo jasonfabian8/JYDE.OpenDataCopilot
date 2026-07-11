@@ -1,0 +1,37 @@
+# Dependencias LOCALES para desarrollo (opciones gratuitas que corren en el PC).
+# En producción se reemplazan por Azure AI Search + MongoDB Atlas vía configuración.
+# Uso: docker compose up -d
+services:
+
+  # Postgres con pgvector: doble propósito -> índice vectorial (adaptador PgVector)
+  # y cache de datasets / datos de app.
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: odc-postgres
+    environment:
+      POSTGRES_USER: odc
+      POSTGRES_PASSWORD: odc_dev
+      POSTGRES_DB: opendatacopilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - odc-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odc -d opendatacopilot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Qdrant: alternativa de índice vectorial dedicado (adaptador Qdrant).
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: odc-qdrant
+    ports:
+      - "6333:6333"   # REST/HTTP
+      - "6334:6334"   # gRPC
+    volumes:
+      - odc-qdrant:/qdrant/storage
+
+volumes:
+  odc-pgdata:
+  odc-qdrant:

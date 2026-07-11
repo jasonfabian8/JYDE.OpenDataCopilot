@@ -1,0 +1,173 @@
+###############################################################################
+# .gitignore — Solución .NET (backend) + React/Node (frontend)
+###############################################################################
+
+# ----------------------------------------------------------------------------
+# .NET / C# / Visual Studio
+# ----------------------------------------------------------------------------
+
+# Resultados de compilación
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+build/
+bld/
+msbuild.binlog
+
+# Archivos generados por MSBuild / restore
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nupkg
+*.snupkg
+.nuget/
+**/packages/*
+!**/packages/build/
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+*.userprefs
+*.rsuser
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*.log
+*.tlog
+*.vspscc
+*.vssscc
+.builds
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+orleans.codegen.cs
+
+# Resultados de pruebas / cobertura
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+TestResults/
+.coverage/
+
+# Rider / ReSharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# ----------------------------------------------------------------------------
+# ASP.NET / configuración sensible
+# ----------------------------------------------------------------------------
+appsettings.*.local.json
+appsettings.Development.local.json
+secrets.json
+*.dev.json
+
+# ----------------------------------------------------------------------------
+# Node / React / frontend
+# ----------------------------------------------------------------------------
+
+# Dependencias
+node_modules/
+.pnp/
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Salidas de build de frontend
+dist/
+dist-ssr/
+build/
+.next/
+out/
+.nuxt/
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+.svelte-kit/
+
+# Logs de Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Reportes de cobertura de frontend
+coverage/
+.nyc_output/
+
+# Variables de entorno (no commitear secretos)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ----------------------------------------------------------------------------
+# Editores / IDE
+# ----------------------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# ----------------------------------------------------------------------------
+# Sistema operativo
+# ----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ----------------------------------------------------------------------------
+# Herramientas / agentes locales
+# ----------------------------------------------------------------------------
+.local/
