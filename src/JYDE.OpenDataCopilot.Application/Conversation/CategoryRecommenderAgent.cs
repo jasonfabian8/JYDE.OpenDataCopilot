@@ -15,6 +15,8 @@ public sealed class CategoryRecommenderAgent : IConversationAgent
     /// <summary>Relevancia mínima (0-1) para recomendar una categoría.</summary>
     public const double DefaultRelevanceThreshold = 0.5;
 
+    private const string ParseFallback = "No pude interpretar la respuesta del asistente. Reformula tu consulta, por favor.";
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly ICatalogSource _source;
@@ -76,7 +78,7 @@ public sealed class CategoryRecommenderAgent : IConversationAgent
         IReadOnlyList<string> loaded = await _repository.GetLoadedCategoriesAsync(cancellationToken);
         HashSet<string> loadedSet = new(loaded, StringComparer.OrdinalIgnoreCase);
 
-        ChatPrompt prompt = new(Name, BuildInput(context.Question, all, loadedSet), context.PreviousResponseId);
+        ChatPrompt prompt = new(Name, ContextHeader.For(context) + BuildInput(context.Question, all, loadedSet), context.PreviousResponseId);
         ChatResult result = await _chat.CompleteAsync(prompt, cancellationToken);
 
         (string answer, string query, IReadOnlyList<CategoryRecommendation> recommendations) =
@@ -110,10 +112,10 @@ public sealed class CategoryRecommenderAgent : IConversationAgent
         CategoryRecommenderReply? reply = TryParseReply(text);
         if (reply is null)
         {
-            return (text, question, []);
+            return (HumanText.Salvage(text, ParseFallback), question, []);
         }
 
-        string answer = string.IsNullOrWhiteSpace(reply.Respuesta) ? text : reply.Respuesta;
+        string answer = string.IsNullOrWhiteSpace(reply.Respuesta) ? HumanText.Salvage(text, ParseFallback) : reply.Respuesta;
         string query = string.IsNullOrWhiteSpace(reply.Consulta) ? question : reply.Consulta;
 
         // La fuente puede traer nombres que solo difieren en mayúsculas (p. ej. "Participación

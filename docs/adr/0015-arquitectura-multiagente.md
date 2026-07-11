@@ -67,8 +67,19 @@ Con ≥ 2 agentes se materializan piezas previstas en el seguimiento:
   (`Search:RelevanceThreshold`, `Conversation:CategoryRelevanceThreshold`). Evita citar candidatos
   cercanos por embedding pero fuera de tema. Parseo defensivo (degrada si no hay JSON válido).
 - **Reequilibrio a Foundry**: las reglas/rúbrica/esquema viven en las instrucciones de cada agente en
-  Foundry (versionadas); el sistema envía solo los datos + un recordatorio compacto del JSON.
-- Eventos SSE ahora: `agent` → `sources`/`categories` → `token`… → `conversation` → `done`.
+  Foundry (versionadas); el sistema envía solo **datos** (sin recordatorio de esquema). El backend
+  parsea a la defensiva (`JsonText.FirstJsonObject`, robusto ante prosa, vallas ``` y JSON duplicado).
+- **`FiguresAgent`** (agente de cifras): consulta **datos reales** vía SoQL (puerto `IDataQuery`,
+  adaptador `SocrataDataQuery` sobre SODA). El LLM elige dataset y escribe SoQL; el backend lo ejecuta
+  y emite **artefactos** de **tabla** (`Table`) y **gráfico** (`Chart`). No inventa cifras: si la
+  consulta falla, lo declara.
+- **Memoria de conversación**: `ObjectiveTracker` (LLM) resume el objetivo tras cada turno (evento
+  `objective`); el cliente lo lleva y es **editable**. El `ConversationContext` transporta el objetivo
+  y los **datasets seleccionados** (memoria), que los agentes anteponen a su input (`ContextHeader`)
+  para no perder el hilo. Backend sin estado.
+- **Frontend estilo Claude**: panel lateral de **artefactos** (tablas + gráficos SVG) y **panel de
+  memoria** (objetivo editable + datasets fijados). Eventos SSE:
+  `agent` → `sources`/`categories`/`table`/`chart` → `token`… → `conversation` → `objective` → `done`.
 
 ## Alternativas consideradas
 

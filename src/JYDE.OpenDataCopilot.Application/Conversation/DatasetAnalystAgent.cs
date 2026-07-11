@@ -18,6 +18,8 @@ public sealed class DatasetAnalystAgent : IConversationAgent
     /// <summary>Relevancia mínima (0-1, recalculada por el LLM) para citar un dataset.</summary>
     public const double DefaultRelevanceThreshold = 0.5;
 
+    private const string ParseFallback = "No pude interpretar la respuesta del asistente. Reformula tu consulta, por favor.";
+
     /// <summary>Cantidad mínima de candidatos a considerar (más contexto para evaluar cruces).</summary>
     public const int CandidateCount = 8;
 
@@ -115,7 +117,7 @@ public sealed class DatasetAnalystAgent : IConversationAgent
             }
         }
 
-        ChatPrompt prompt = new(Name, BuildInput(context.Question, datasets), context.PreviousResponseId);
+        ChatPrompt prompt = new(Name, ContextHeader.For(context) + BuildInput(context.Question, datasets), context.PreviousResponseId);
         ChatResult result = await _chat.CompleteAsync(prompt, cancellationToken);
 
         (string answer, IReadOnlyList<Citation> citations) = Interpret(result.Text, datasets);
@@ -144,10 +146,10 @@ public sealed class DatasetAnalystAgent : IConversationAgent
         RecommenderReply? reply = TryParseReply(text);
         if (reply is null)
         {
-            return (text, []);
+            return (HumanText.Salvage(text, ParseFallback), []);
         }
 
-        string answer = string.IsNullOrWhiteSpace(reply.Respuesta) ? text : reply.Respuesta;
+        string answer = string.IsNullOrWhiteSpace(reply.Respuesta) ? HumanText.Salvage(text, ParseFallback) : reply.Respuesta;
 
         Dictionary<string, double> relevanceById = new(StringComparer.OrdinalIgnoreCase);
         foreach (RecommenderDatasetScore score in reply.Datasets ?? [])

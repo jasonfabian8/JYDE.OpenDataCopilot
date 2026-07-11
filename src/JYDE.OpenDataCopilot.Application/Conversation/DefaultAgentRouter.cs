@@ -11,6 +11,7 @@ public sealed class DefaultAgentRouter : IAgentRouter
     public Task<IConversationAgent> RouteAsync(
         string question,
         IReadOnlyList<IConversationAgent> agents,
+        string? context = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(agents);

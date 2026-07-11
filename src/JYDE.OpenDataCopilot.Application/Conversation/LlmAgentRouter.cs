@@ -33,6 +33,7 @@ public sealed class LlmAgentRouter : IAgentRouter
     public async Task<IConversationAgent> RouteAsync(
         string question,
         IReadOnlyList<IConversationAgent> agents,
+        string? context = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(agents);
@@ -46,7 +47,7 @@ public sealed class LlmAgentRouter : IAgentRouter
             return agents[0];
         }
 
-        IConversationAgent? chosen = await TryRouteAsync(question, agents, cancellationToken);
+        IConversationAgent? chosen = await TryRouteAsync(question, agents, context, cancellationToken);
         return chosen
             ?? agents.FirstOrDefault(agent => agent.CanHandle(question))
             ?? agents[0];
@@ -55,12 +56,13 @@ public sealed class LlmAgentRouter : IAgentRouter
     private async Task<IConversationAgent?> TryRouteAsync(
         string question,
         IReadOnlyList<IConversationAgent> agents,
+        string? context,
         CancellationToken cancellationToken)
     {
         try
         {
             ChatResult result = await _chat.CompleteAsync(
-                new ChatPrompt(_routerAgent, BuildInput(question, agents)),
+                new ChatPrompt(_routerAgent, BuildInput(question, agents, context)),
                 cancellationToken);
 
             string? name = ParseAgentName(result.Text);
@@ -98,14 +100,18 @@ public sealed class LlmAgentRouter : IAgentRouter
         }
     }
 
-    private static string BuildInput(string question, IReadOnlyList<IConversationAgent> agents)
+    private static string BuildInput(string question, IReadOnlyList<IConversationAgent> agents, string? context)
     {
         // Solo datos: la regla de selección y el esquema JSON viven en la instrucción del enrutador en Foundry.
         string nl = Environment.NewLine;
         string catalog = string.Join(nl, agents.Select(agent => $"- {agent.Name}: {agent.Description}"));
+        string previous = string.IsNullOrWhiteSpace(context)
+            ? string.Empty
+            : $"Respuesta anterior del Copilot: {context}{nl}{nl}";
 
         return
-            $"Consulta del usuario: {question}{nl}{nl}" +
+            previous +
+            $"Mensaje del usuario: {question}{nl}{nl}" +
             $"Agentes disponibles:{nl}{catalog}";
     }
 }

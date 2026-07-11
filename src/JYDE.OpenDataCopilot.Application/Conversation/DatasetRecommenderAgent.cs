@@ -15,6 +15,8 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
     /// <summary>Relevancia mínima (0-1, recalculada por el LLM) para citar un candidato.</summary>
     public const double DefaultRelevanceThreshold = 0.5;
 
+    private const string ParseFallback = "No pude interpretar la respuesta del asistente. Reformula tu consulta, por favor.";
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly IEmbeddingGenerator _embeddings;
@@ -72,9 +74,9 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
         IReadOnlyList<float> queryEmbedding = await _embeddings.GenerateAsync(context.Question, cancellationToken);
         IReadOnlyList<DatasetSearchHit> hits = await _index.SearchAsync(queryEmbedding, context.TopK, cancellationToken);
 
-        // Componemos el input (consulta + candidatos con su id) pidiendo una respuesta JSON con la
-        // relevancia recalculada; mantenemos el hilo con el id de respuesta anterior.
-        ChatPrompt prompt = new(Name, BuildInput(context.Question, hits), context.PreviousResponseId);
+        // Componemos el input (memoria + consulta + candidatos con su id) pidiendo una respuesta JSON
+        // con la relevancia recalculada; mantenemos el hilo con el id de respuesta anterior.
+        ChatPrompt prompt = new(Name, ContextHeader.For(context) + BuildInput(context.Question, hits), context.PreviousResponseId);
         ChatResult result = await _chat.CompleteAsync(prompt, cancellationToken);
 
         (string answer, IReadOnlyList<Citation> citations) = Interpret(result.Text, hits);
@@ -111,10 +113,10 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
         RecommenderReply? reply = TryParseReply(text);
         if (reply is null)
         {
-            return (text, []);
+            return (HumanText.Salvage(text, ParseFallback), []);
         }
 
-        string answer = string.IsNullOrWhiteSpace(reply.Respuesta) ? text : reply.Respuesta;
+        string answer = string.IsNullOrWhiteSpace(reply.Respuesta) ? HumanText.Salvage(text, ParseFallback) : reply.Respuesta;
 
         Dictionary<string, double> relevanceById = new(StringComparer.OrdinalIgnoreCase);
         foreach (RecommenderDatasetScore score in reply.Datasets ?? [])
