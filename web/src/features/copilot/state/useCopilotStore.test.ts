@@ -152,6 +152,7 @@ describe("useCopilotStore", () => {
     expect(search.buildIndex).toHaveBeenCalled();
     expect(chat.stream).toHaveBeenCalledWith("suicidio juvenil", null, expect.any(AbortSignal));
     expect(useCopilotStore.getState().loadingCategory).toBeNull();
+    expect(useCopilotStore.getState().loadedCategories).toContain("Salud y Protección Social");
   });
 
   it("loadCategoryAndRetry marca error si la carga falla", async () => {

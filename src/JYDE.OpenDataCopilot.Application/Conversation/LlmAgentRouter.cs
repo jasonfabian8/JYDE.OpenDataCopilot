@@ -106,13 +106,12 @@ public sealed class LlmAgentRouter : IAgentRouter
 
     private static string BuildInput(string question, IReadOnlyList<IConversationAgent> agents)
     {
+        // Solo datos: la regla de selección y el esquema JSON viven en la instrucción del enrutador en Foundry.
         string nl = Environment.NewLine;
         string catalog = string.Join(nl, agents.Select(agent => $"- {agent.Name}: {agent.Description}"));
 
         return
             $"Consulta del usuario: {question}{nl}{nl}" +
-            $"Agentes disponibles:{nl}{catalog}{nl}{nl}" +
-            $"Elige el agente que mejor atiende la consulta y responde ÚNICAMENTE con el JSON acordado:{nl}" +
-            "{\"agente\": \"<nombre EXACTO del agente>\"}";
+            $"Agentes disponibles:{nl}{catalog}";
     }
 }

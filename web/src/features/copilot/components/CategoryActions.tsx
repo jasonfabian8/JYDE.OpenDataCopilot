@@ -12,9 +12,12 @@ export function CategoryActions({
 }): ReactElement {
   const loadingCategory: string | null = useCopilotStore((state) => state.loadingCategory);
   const status: string = useCopilotStore((state) => state.status);
+  const loadedCategories: ReadonlyArray<string> = useCopilotStore((state) => state.loadedCategories);
   const loadCategoryAndRetry = useCopilotStore((state) => state.loadCategoryAndRetry);
 
   const busy: boolean = loadingCategory !== null || status === "streaming";
+  const isLoaded = (name: string): boolean =>
+    loadedCategories.some((loaded) => loaded.toLowerCase() === name.toLowerCase());
 
   return (
     <div className="rounded-xl border border-night-line bg-night-2 p-3">
@@ -23,7 +26,7 @@ export function CategoryActions({
       </p>
       <div className="flex flex-wrap gap-2">
         {categories.map((category) =>
-          category.loaded ? (
+          category.loaded || isLoaded(category.name) ? (
             <span
               key={category.name}
               className="inline-flex items-center gap-1.5 rounded-full border border-verde/40 bg-verde/10 px-3 py-1.5 text-sm text-night-soft"

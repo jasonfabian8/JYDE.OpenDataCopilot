@@ -61,6 +61,8 @@ interface CopilotState {
   readonly streamingQuery: string | null;
   /** Categoría que se está cargando (ingesta + reindexado) desde un botón; null si ninguna. */
   readonly loadingCategory: string | null;
+  /** Categorías cargadas durante la sesión (para deshabilitar botones ya cargados). */
+  readonly loadedCategories: ReadonlyArray<string>;
   /** Último error, si lo hubo. */
   readonly error: string | null;
   /** Actualiza el texto de entrada. */
@@ -94,6 +96,7 @@ export function initialCopilotState(): Pick<
   | "streamingCategories"
   | "streamingQuery"
   | "loadingCategory"
+  | "loadedCategories"
   | "error"
 > {
   const conversation: Conversation = newConversationRecord();
@@ -108,6 +111,7 @@ export function initialCopilotState(): Pick<
     streamingCategories: null,
     streamingQuery: null,
     loadingCategory: null,
+    loadedCategories: [],
     error: null,
   };
 }
@@ -138,7 +142,13 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
         return;
       }
       const fresh: Conversation = newConversationRecord();
-      set({ ...initialCopilotState(), conversations: [fresh, ...get().conversations], activeId: fresh.id });
+      // loadedCategories refleja el estado del catálogo (global), no del hilo: se conserva.
+      set({
+        ...initialCopilotState(),
+        conversations: [fresh, ...get().conversations],
+        activeId: fresh.id,
+        loadedCategories: get().loadedCategories,
+      });
     },
 
     selectConversation: (id: string): void => {
@@ -149,6 +159,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
         ...initialCopilotState(),
         conversations: get().conversations,
         activeId: id,
+        loadedCategories: get().loadedCategories,
       });
     },
 
@@ -240,7 +251,12 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
       try {
         await catalogApi.ingest({ categories: [categoryName] });
         await searchApi.buildIndex();
-        set({ loadingCategory: null, input: query });
+        const alreadyTracked: boolean = get().loadedCategories.includes(categoryName);
+        set({
+          loadingCategory: null,
+          input: query,
+          loadedCategories: alreadyTracked ? get().loadedCategories : [...get().loadedCategories, categoryName],
+        });
         await get().send();
       } catch (error: unknown) {
         set({ loadingCategory: null, status: "error", error: describe(error) });

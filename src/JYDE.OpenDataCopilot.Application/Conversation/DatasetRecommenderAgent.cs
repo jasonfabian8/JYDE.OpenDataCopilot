@@ -163,16 +163,15 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
 
     private static string BuildInput(string question, IReadOnlyList<DatasetSearchHit> hits)
     {
-        // Las reglas, la rúbrica y el tono viven en las instrucciones del agente en Foundry
-        // (versionadas). Aquí enviamos solo los DATOS + un recordatorio compacto del esquema JSON.
+        // El user prompt lleva SOLO datos; las reglas, la rúbrica y el esquema JSON viven en las
+        // instrucciones del agente en Foundry (versionadas), para no inflar el contexto.
         string nl = Environment.NewLine;
 
         if (hits.Count == 0)
         {
             return
                 $"Consulta del ciudadano: {question}{nl}{nl}" +
-                $"No se recuperaron datasets candidatos del índice de datos.gov.co para esta consulta.{nl}" +
-                "Responde ÚNICAMENTE con el JSON acordado: {\"respuesta\": \"...\", \"datasets\": []}";
+                "Candidatos recuperados del índice: (ninguno para esta consulta)";
         }
 
         string candidates = string.Join(
@@ -183,10 +182,7 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
 
         return
             $"Consulta del ciudadano: {question}{nl}{nl}" +
-            $"Candidatos recuperados del índice de datos.gov.co por búsqueda semántica " +
-            $"(NO los aporta el ciudadano):{nl}{candidates}{nl}{nl}" +
-            "Responde ÚNICAMENTE con el JSON acordado: " +
-            "{\"respuesta\": \"...\", \"datasets\": [{\"id\": \"<id>\", \"relevancia\": <0.0-1.0>}]}";
+            $"Candidatos recuperados del índice (id | nombre | categoría | fuente):{nl}{candidates}";
     }
 
     /// <summary>Trocea el texto en fragmentos (por palabras) para dar sensación de streaming.</summary>

@@ -108,7 +108,7 @@ public sealed class DatasetRecommenderAgentTests
         events.ShouldNotContain(e => e.Kind == ConversationEventKind.Sources);
         events.ShouldContain(e => e.Kind == ConversationEventKind.Token);
         events[^1].Kind.ShouldBe(ConversationEventKind.Done);
-        chat.LastPrompt.ShouldNotBeNull().Input.ShouldContain("No se recuperaron datasets candidatos");
+        chat.LastPrompt.ShouldNotBeNull().Input.ShouldContain("ninguno para esta consulta");
     }
 
     [Fact]

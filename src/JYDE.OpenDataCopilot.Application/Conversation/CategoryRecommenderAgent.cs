@@ -172,6 +172,7 @@ public sealed class CategoryRecommenderAgent : IConversationAgent
 
     private static string BuildInput(string question, IReadOnlyList<CatalogCategory> all, HashSet<string> loadedSet)
     {
+        // Solo datos: las reglas y el esquema JSON viven en las instrucciones del agente en Foundry.
         string nl = Environment.NewLine;
         string catalog = all.Count == 0
             ? "(no se pudo obtener la lista de categorías)"
@@ -183,11 +184,7 @@ public sealed class CategoryRecommenderAgent : IConversationAgent
 
         return
             $"Necesidad del ciudadano: {question}{nl}{nl}" +
-            $"Categorías del catálogo de datos.gov.co (nombre | datasets | estado):{nl}{catalog}{nl}{nl}" +
-            $"Responde ÚNICAMENTE con el JSON acordado (sin texto adicional, sin vallas de código):{nl}" +
-            "{\"respuesta\": \"<en español: qué categorías cargar y por qué; si ya hay cargadas útiles, " +
-            "menciónalo; no inventes>\", \"consulta\": \"<tema a buscar tras cargar, en pocas palabras>\", " +
-            "\"categorias\": [{\"nombre\": \"<nombre EXACTO de la lista>\", \"relevancia\": <0.0-1.0>}]}";
+            $"Categorías del catálogo de datos.gov.co (nombre | datasets | estado):{nl}{catalog}";
     }
 
     /// <summary>Trocea el texto en fragmentos (por palabras) para dar sensación de streaming.</summary>
