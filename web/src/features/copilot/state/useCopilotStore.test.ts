@@ -292,6 +292,40 @@ describe("useCopilotStore", () => {
     expect(useCopilotStore.getState().selectedDatasets).toHaveLength(0);
   });
 
+  it("la memoria/artefactos/auditoría son POR conversación (no globales)", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "objective", objective: "objetivo del hilo A" };
+      yield { kind: "table", table: { title: "T", columns: ["c"], rows: [["1"]] } };
+      yield {
+        kind: "audit",
+        interactions: [{ agent: "router-agent", request: "r", response: "s" }],
+      };
+      yield { kind: "token", text: "ok" };
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({ input: "hola A" });
+    await useCopilotStore.getState().send();
+    const idA = useCopilotStore.getState().activeId;
+
+    // Hilo A quedó con memoria, artefactos y auditoría.
+    expect(useCopilotStore.getState().objective).toBe("objetivo del hilo A");
+    expect(useCopilotStore.getState().artifacts).toHaveLength(1);
+    expect(useCopilotStore.getState().auditLog).toHaveLength(1);
+
+    // Nuevo hilo B: el espejo se vacía.
+    useCopilotStore.getState().newConversation();
+    expect(useCopilotStore.getState().objective).toBe("");
+    expect(useCopilotStore.getState().artifacts).toHaveLength(0);
+    expect(useCopilotStore.getState().auditLog).toHaveLength(0);
+    useCopilotStore.getState().setObjective("objetivo del hilo B");
+
+    // Volver a A restaura SU memoria/artefactos/auditoría; B conserva la suya.
+    useCopilotStore.getState().selectConversation(idA);
+    expect(useCopilotStore.getState().objective).toBe("objetivo del hilo A");
+    expect(useCopilotStore.getState().artifacts).toHaveLength(1);
+    expect(useCopilotStore.getState().auditLog).toHaveLength(1);
+  });
+
   it("togglePanel alterna y closePanel cierra el dock derecho", () => {
     useCopilotStore.getState().togglePanel("memory");
     expect(useCopilotStore.getState().rightPanel).toBe("memory");

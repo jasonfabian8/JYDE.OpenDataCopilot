@@ -72,9 +72,9 @@ export interface SelectedDataset {
   readonly name: string;
 }
 
-/** Una conversación (hilo) mantenida en memoria durante la sesión actual. */
+/** Una conversación (hilo) con su propia memoria, artefactos y auditoría (estado por conversación). */
 export interface Conversation {
-  /** Id local de la conversación (no se persiste; el refresco reinicia todo). */
+  /** Id local de la conversación. */
   readonly id: string;
   /** Título mostrado en la barra lateral (derivado del primer mensaje). */
   readonly title: string;
@@ -82,6 +82,14 @@ export interface Conversation {
   readonly messages: ReadonlyArray<CopilotMessage>;
   /** Id del hilo de Foundry para conservar la memoria (previous_response_id); null si es nuevo. */
   readonly threadId: string | null;
+  /** Objetivo acumulado (memoria) de ESTA conversación. */
+  readonly objective: string;
+  /** Datasets fijados (memoria) de ESTA conversación. */
+  readonly selectedDatasets: ReadonlyArray<SelectedDataset>;
+  /** Artefactos (tablas/gráficos) generados en ESTA conversación. */
+  readonly artifacts: ReadonlyArray<Artifact>;
+  /** Bitácora de auditoría (interacciones crudas) de ESTA conversación. */
+  readonly auditLog: ReadonlyArray<AuditEntry>;
 }
 
 /** Estado del flujo de chat. */
@@ -111,13 +119,13 @@ interface CopilotState {
   readonly loadingCategory: string | null;
   /** Categorías cargadas durante la sesión (para deshabilitar botones ya cargados). */
   readonly loadedCategories: ReadonlyArray<string>;
-  /** Objetivo acumulado de la conversación (memoria); lo actualiza el backend y es editable. */
+  /** Objetivo del hilo activo (ESPEJO de la conversación activa; editable). */
   readonly objective: string;
-  /** Datasets que el usuario mantiene seleccionados (memoria). */
+  /** Datasets fijados del hilo activo (ESPEJO de la conversación activa). */
   readonly selectedDatasets: ReadonlyArray<SelectedDataset>;
-  /** Artefactos generados (tablas y gráficos) para el panel lateral. */
+  /** Artefactos del hilo activo (ESPEJO de la conversación activa). */
   readonly artifacts: ReadonlyArray<Artifact>;
-  /** Bitácora de auditoría: interacciones crudas por turno. */
+  /** Bitácora de auditoría del hilo activo (ESPEJO de la conversación activa). */
   readonly auditLog: ReadonlyArray<AuditEntry>;
   /** Panel derecho acoplado activo (memoria / artefactos / auditoría / ninguno). */
   readonly rightPanel: RightPanel;
@@ -150,7 +158,16 @@ interface CopilotState {
 }
 
 function newConversationRecord(): Conversation {
-  return { id: crypto.randomUUID(), title: "Nuevo chat", messages: [], threadId: null };
+  return {
+    id: crypto.randomUUID(),
+    title: "Nuevo chat",
+    messages: [],
+    threadId: null,
+    objective: "",
+    selectedDatasets: [],
+    artifacts: [],
+    auditLog: [],
+  };
 }
 
 /**
@@ -216,6 +233,16 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
   const patchConversation = (id: string, updater: (conversation: Conversation) => Conversation): void =>
     set({ conversations: get().conversations.map((c) => (c.id === id ? updater(c) : c)) });
 
+  // Escribe memoria/artefactos/auditoría en el hilo activo (fuente de verdad) y en el espejo de nivel
+  // superior (que refleja siempre el hilo activo). Así el estado es por conversación sin tocar los
+  // componentes, que siguen leyendo del espejo.
+  const patchMemory = (
+    patch: Partial<Pick<Conversation, "objective" | "selectedDatasets" | "artifacts" | "auditLog">>,
+  ): void => {
+    set(patch);
+    patchConversation(get().activeId, (conversation) => ({ ...conversation, ...patch }));
+  };
+
   return {
     ...initialCopilotState(),
 
@@ -242,11 +269,17 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
       if (get().status === "streaming") {
         return;
       }
+      const target: Conversation | undefined = get().conversations.find((c) => c.id === id);
       set({
         ...initialCopilotState(),
         conversations: get().conversations,
         activeId: id,
         loadedCategories: get().loadedCategories,
+        // El espejo toma la memoria/artefactos/auditoría de la conversación seleccionada.
+        objective: target?.objective ?? "",
+        selectedDatasets: target?.selectedDatasets ?? [],
+        artifacts: target?.artifacts ?? [],
+        auditLog: target?.auditLog ?? [],
       });
     },
 
@@ -337,7 +370,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
             set({ streamingCategories: event.categories, streamingQuery: event.query });
             break;
           case "objective":
-            set({ objective: event.objective });
+            patchMemory({ objective: event.objective });
             break;
           case "table": {
             const table: TableArtifact = {
@@ -347,7 +380,8 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
               columns: event.table.columns,
               rows: event.table.rows,
             };
-            set({ streamingTable: event.table, artifacts: [...get().artifacts, table], rightPanel: "artifacts" });
+            set({ streamingTable: event.table, rightPanel: "artifacts" });
+            patchMemory({ artifacts: [...get().artifacts, table] });
             break;
           }
           case "chart": {
@@ -362,11 +396,12 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
               columns: source?.columns ?? [],
               rows: source?.rows ?? [],
             };
-            set({ artifacts: [...get().artifacts, chart], rightPanel: "artifacts" });
+            set({ rightPanel: "artifacts" });
+            patchMemory({ artifacts: [...get().artifacts, chart] });
             break;
           }
           case "audit":
-            set({
+            patchMemory({
               auditLog: [
                 ...get().auditLog,
                 { id: crypto.randomUUID(), userMessage: question, interactions: event.interactions },
@@ -405,19 +440,19 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
       }
     },
 
-    setObjective: (value: string): void => set({ objective: value }),
+    setObjective: (value: string): void => patchMemory({ objective: value }),
 
     pinDataset: (dataset: SelectedDataset): void => {
       if (get().selectedDatasets.some((selected) => selected.id === dataset.id)) {
         return;
       }
-      set({ selectedDatasets: [...get().selectedDatasets, dataset] });
+      patchMemory({ selectedDatasets: [...get().selectedDatasets, dataset] });
     },
 
     unpinDataset: (id: string): void =>
-      set({ selectedDatasets: get().selectedDatasets.filter((selected) => selected.id !== id) }),
+      patchMemory({ selectedDatasets: get().selectedDatasets.filter((selected) => selected.id !== id) }),
 
-    clearMemory: (): void => set({ objective: "", selectedDatasets: [] }),
+    clearMemory: (): void => patchMemory({ objective: "", selectedDatasets: [] }),
 
     togglePanel: (panel: RightPanel): void => set({ rightPanel: get().rightPanel === panel ? "none" : panel }),
 
