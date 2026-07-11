@@ -27,6 +27,22 @@ Criterios técnicos:
 - **Negativas / trade-offs:** Zustand cubre estado de cliente; la estrategia de estado de servidor (cache/reintentos) queda pendiente de concertar. El gobierno añade un paso antes de adoptar una librería, a cambio de consistencia.
 - **Seguimiento:** abordar los pendientes (estilos, data-fetching, gráficos, pruebas, i18n) en ADRs sucesivos a medida que se desarrollen las features.
 
+## Actualización 2026-07-10 — Estructura multi-página (landing + Copilot)
+
+Para **independizar la experiencia de trabajo (el chat) de la comunicación (la landing)** se
+adopta una estructura **multi-página de Vite con dos puntos de entrada**, sin router ni
+dependencias nuevas (el gobierno de librerías se respeta):
+
+- `index.html` → **landing informativa** (tema claro), enlaza con «Abrir Copilot».
+- `copilot/index.html` → servida en **`/copilot/`**: la **app del Copilot conversacional**
+  (tema oscuro, layout estilo ChatGPT/Claude: barra lateral + área central).
+
+Ambas páginas comparten el *design system* (`styles/index.css`, con tokens oscuros `night`/`sky`)
+y el cliente de la API (`shared/api`). El estado del chat vive en `features/copilot`
+(varias conversaciones **en memoria de la sesión**; el refresco reinicia el hilo, coherente con
+el backend sin estado — ver [ADR-0015](0015-arquitectura-multiagente.md)). El antiguo `ChatPanel`
+embebido en la landing se retiró.
+
 ## Alternativas consideradas
 
 - **Build:** Create React App (en desuso, lento) y Next.js (orientado a SSR/full-stack, innecesario para una SPA que ya tiene backend .NET) — descartadas frente a la simplicidad y velocidad de Vite.

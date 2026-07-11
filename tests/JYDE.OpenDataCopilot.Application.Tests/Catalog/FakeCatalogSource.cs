@@ -15,6 +15,9 @@ public sealed class FakeCatalogSource : ICatalogSource
     /// <summary>Último filtro recibido en <see cref="FetchAsync"/>.</summary>
     public CatalogFilter? LastFilter { get; private set; }
 
+    /// <summary>Categorías a devolver en <see cref="GetCategoriesAsync"/>.</summary>
+    public IReadOnlyList<CatalogCategory> Categories { get; init; } = [];
+
     /// <inheritdoc />
     public async IAsyncEnumerable<Dataset> FetchAsync(
         CatalogFilter filter,
@@ -28,4 +31,8 @@ public sealed class FakeCatalogSource : ICatalogSource
             await Task.Yield();
         }
     }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<CatalogCategory>> GetCategoriesAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(Categories);
 }

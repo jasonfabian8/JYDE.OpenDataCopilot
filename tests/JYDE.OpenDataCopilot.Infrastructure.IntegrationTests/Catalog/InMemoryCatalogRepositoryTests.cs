@@ -66,6 +66,24 @@ public sealed class InMemoryCatalogRepositoryTests
     }
 
     [Fact]
+    public async Task GetLoadedCategoriesAsync_DevuelveCategoriasDistintas_OrdenadasSinNulas()
+    {
+        InMemoryCatalogRepository repository = new();
+        await repository.SaveAsync(
+            [
+                new Dataset(new DatasetId("aaaa-0001"), "A", new DatasetMetadata(category: "Transporte")),
+                new Dataset(new DatasetId("aaaa-0002"), "B", new DatasetMetadata(category: "Transporte")),
+                new Dataset(new DatasetId("aaaa-0003"), "C", new DatasetMetadata(category: "Salud")),
+                new Dataset(new DatasetId("aaaa-0004"), "D"),
+            ],
+            TestContext.Current.CancellationToken);
+
+        IReadOnlyList<string> categories = await repository.GetLoadedCategoriesAsync(TestContext.Current.CancellationToken);
+
+        categories.ShouldBe(["Salud", "Transporte"]);
+    }
+
+    [Fact]
     public async Task Metodos_ConArgumentosNulos_Lanzan()
     {
         InMemoryCatalogRepository repository = new();

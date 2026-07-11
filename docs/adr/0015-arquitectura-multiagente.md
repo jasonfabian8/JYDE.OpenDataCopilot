@@ -42,8 +42,49 @@ Adoptar una **arquitectura multiagente** en el bounded context `Conversation`:
 - **Seguimiento:** implementar `FoundryChatCompletion` (requiere credenciales), el agente de cifras
   (`IDataQuery`/SoQL) y el enrutador basado en LLM cuando haya ≥ 2 agentes.
 
+## Actualización 2026-07-11 — Enrutador LLM, agente de categorías y re-ranking por JSON
+
+Con ≥ 2 agentes se materializan piezas previstas en el seguimiento:
+
+- **Enrutador basado en LLM** (`LlmAgentRouter`): recibe la consulta + la lista de agentes (nombre y
+  descripción) y elige cuál atiende (JSON `{"agente": "..."}`). Es un agente de Foundry (`router-agent`,
+  `Conversation:RouterAgent`). **Degrada a reglas** (`DefaultAgentRouter`, por `CanHandle`) si el
+  enrutador falla o no está disponible. `IAgentRouter.Route` pasó a **`RouteAsync`**. En local/Fake se
+  usa el enrutador por reglas.
+- **`CategoryRecommenderAgent`**: recomienda qué **categorías** de datos.gov.co cargar. Recibe la lista
+  completa (con conteo) + cuáles están cargadas (`ICatalogRepository.GetLoadedCategoriesAsync`) y
+  devuelve JSON con relevancia por categoría + una **consulta sugerida** a reintentar. Emite un evento
+  SSE nuevo **`categories`** que el frontend muestra como **botones**: al clic se ingiere esa categoría,
+  se reconstruye el índice y se **re-pregunta** la consulta.
+- **`DatasetAnalystAgent`**: entiende los datasets desde sus **metadatos (columnas)** ya almacenados.
+  Resuelve el/los dataset(s) (búsqueda semántica), trae su esquema completo del repositorio
+  (`ICatalogRepository.GetByIdAsync`) y pide al LLM (a) **describir columnas** o (b) evaluar la
+  **factibilidad de cruce/correlación** entre dos datasets por columnas comunes (municipio, año,
+  código DANE…). No consulta datos reales — eso corresponde al futuro **agente de cifras (SoQL)**.
+  Reutiliza el re-ranking por JSON (cita solo los datasets usados).
+- **Re-ranking por JSON en los agentes de recomendación**: el LLM devuelve `{respuesta, ...}` con la
+  **relevancia recalculada** por cada candidato; solo se cita/recomienda lo que supera el umbral
+  (`Search:RelevanceThreshold`, `Conversation:CategoryRelevanceThreshold`). Evita citar candidatos
+  cercanos por embedding pero fuera de tema. Parseo defensivo (degrada si no hay JSON válido).
+- **Reequilibrio a Foundry**: las reglas/rúbrica/esquema viven en las instrucciones de cada agente en
+  Foundry (versionadas); el sistema envía solo **datos** (sin recordatorio de esquema). El backend
+  parsea a la defensiva (`JsonText.FirstJsonObject`, robusto ante prosa, vallas ``` y JSON duplicado).
+- **`FiguresAgent`** (agente de cifras): consulta **datos reales** vía SoQL (puerto `IDataQuery`,
+  adaptador `SocrataDataQuery` sobre SODA). El LLM elige dataset y escribe SoQL; el backend lo ejecuta
+  y emite **artefactos** de **tabla** (`Table`) y **gráfico** (`Chart`). No inventa cifras: si la
+  consulta falla, lo declara.
+- **Memoria de conversación**: `ObjectiveTracker` (LLM) resume el objetivo tras cada turno (evento
+  `objective`); el cliente lo lleva y es **editable**. El `ConversationContext` transporta el objetivo
+  y los **datasets seleccionados** (memoria), que los agentes anteponen a su input (`ContextHeader`)
+  para no perder el hilo. Backend sin estado.
+- **Frontend estilo Claude**: panel lateral de **artefactos** (tablas + gráficos SVG) y **panel de
+  memoria** (objetivo editable + datasets fijados). Eventos SSE:
+  `agent` → `sources`/`categories`/`table`/`chart` → `token`… → `conversation` → `objective` → `done`.
+
 ## Alternativas consideradas
 
 - **Agente único monolítico** — más simple al inicio, pero frágil, caro en tokens y difícil de
   evolucionar. Descartado.
 - **Orquestación por reglas fijas (sin agentes)** — rígida; no escala a nuevas capacidades.
+- **Enrutador solo por reglas** — insuficiente para intención en lenguaje natural con varios agentes;
+  se conserva únicamente como reserva del enrutador LLM.

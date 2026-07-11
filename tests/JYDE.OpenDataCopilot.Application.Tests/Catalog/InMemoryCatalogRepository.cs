@@ -43,4 +43,18 @@ public sealed class InMemoryCatalogRepository : ICatalogRepository
             await Task.CompletedTask;
         }
     }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>> GetLoadedCategoriesAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<string> categories =
+        [
+            .. _store.Values
+                .Select(dataset => dataset.Category)
+                .Where(category => !string.IsNullOrWhiteSpace(category))
+                .Select(category => category!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+        ];
+        return Task.FromResult(categories);
+    }
 }

@@ -33,20 +33,26 @@ public sealed class FoundryEmbeddingGenerator : IEmbeddingGenerator
     /// <inheritdoc />
     public async Task<IReadOnlyList<float>> GenerateAsync(string text, CancellationToken cancellationToken = default)
     {
-        // Los embeddings se exponen a nivel de RECURSO (no del proyecto): se deriva la raíz quitando
-        // el sufijo "/api/projects/...". Se usa la API v1 (OpenAI-compatible).
-        string resourceBase = _options.Endpoint;
-        int projectIndex = resourceBase.IndexOf("/api/projects", StringComparison.OrdinalIgnoreCase);
-        if (projectIndex >= 0)
+        IReadOnlyList<IReadOnlyList<float>> embeddings = await GenerateBatchAsync([text], cancellationToken);
+        return embeddings[0];
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<IReadOnlyList<float>>> GenerateBatchAsync(
+        IReadOnlyList<string> texts,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(texts);
+        if (texts.Count == 0)
         {
-            resourceBase = resourceBase[..projectIndex];
+            return [];
         }
 
-        Uri url = new($"{resourceBase.TrimEnd('/')}/openai/v1/embeddings");
+        Uri url = new($"{ResourceBase()}/openai/v1/embeddings");
         var payload = new
         {
             model = _options.Embeddings.Deployment,
-            input = text,
+            input = texts,
             dimensions = _options.Embeddings.Dimensions,
         };
 
@@ -58,9 +64,26 @@ public sealed class FoundryEmbeddingGenerator : IEmbeddingGenerator
 
         if (result is null || result.Data.Count == 0)
         {
-            throw new InvalidOperationException("Foundry no devolvió embeddings para el texto solicitado.");
+            throw new InvalidOperationException("Foundry no devolvió embeddings para los textos solicitados.");
         }
 
-        return result.Data[0].Embedding;
+        // Se conserva el orden de la entrada usando el índice que devuelve la API.
+        return [.. result.Data.OrderBy(item => item.Index).Select(item => (IReadOnlyList<float>)item.Embedding)];
+    }
+
+    /// <summary>
+    /// Deriva la raíz del RECURSO (los embeddings viven a nivel de recurso, no de proyecto): quita el
+    /// sufijo "/api/projects/...". Se usa la API v1 (OpenAI-compatible).
+    /// </summary>
+    private string ResourceBase()
+    {
+        string resourceBase = _options.Endpoint;
+        int projectIndex = resourceBase.IndexOf("/api/projects", StringComparison.OrdinalIgnoreCase);
+        if (projectIndex >= 0)
+        {
+            resourceBase = resourceBase[..projectIndex];
+        }
+
+        return resourceBase.TrimEnd('/');
     }
 }

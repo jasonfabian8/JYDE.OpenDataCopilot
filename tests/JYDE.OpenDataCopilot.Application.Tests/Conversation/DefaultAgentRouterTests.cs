@@ -3,37 +3,38 @@ using Shouldly;
 
 namespace JYDE.OpenDataCopilot.Application.Tests.Conversation;
 
-/// <summary>Pruebas de <see cref="DefaultAgentRouter"/>.</summary>
+/// <summary>Pruebas de <see cref="DefaultAgentRouter"/> (enrutado por reglas).</summary>
 public sealed class DefaultAgentRouterTests
 {
     [Fact]
-    public void Route_EligeElPrimerAgenteQuePuedeAtender()
+    public async Task RouteAsync_EligeElPrimerAgenteQuePuedeAtender()
     {
         DefaultAgentRouter router = new();
         StubAgent noPuede = new("a", canHandle: false);
         StubAgent siPuede = new("b", canHandle: true);
 
-        IConversationAgent selected = router.Route("hola", [noPuede, siPuede]);
+        IConversationAgent selected =
+            await router.RouteAsync("hola", [noPuede, siPuede], cancellationToken: TestContext.Current.CancellationToken);
 
         selected.Name.ShouldBe("b");
     }
 
     [Fact]
-    public void Route_SiNingunoPuede_UsaElPrimeroComoReserva()
+    public async Task RouteAsync_SiNingunoPuede_UsaElPrimeroComoReserva()
     {
         DefaultAgentRouter router = new();
         StubAgent a = new("a", canHandle: false);
         StubAgent b = new("b", canHandle: false);
 
-        router.Route("hola", [a, b]).Name.ShouldBe("a");
+        (await router.RouteAsync("hola", [a, b], cancellationToken: TestContext.Current.CancellationToken)).Name.ShouldBe("a");
     }
 
     [Fact]
-    public void Route_SinAgentes_Lanza()
+    public async Task RouteAsync_SinAgentes_Lanza()
     {
         DefaultAgentRouter router = new();
 
-        Should.Throw<InvalidOperationException>(() => router.Route("hola", []));
-        Should.Throw<ArgumentNullException>(() => router.Route("hola", null!));
+        await Should.ThrowAsync<InvalidOperationException>(() => router.RouteAsync("hola", []));
+        await Should.ThrowAsync<ArgumentNullException>(() => router.RouteAsync("hola", null!));
     }
 }

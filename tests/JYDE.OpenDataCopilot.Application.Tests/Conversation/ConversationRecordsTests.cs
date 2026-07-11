@@ -62,4 +62,40 @@ public sealed class ConversationRecordsTests
         agent.GetHashCode().ShouldBe(ConversationEvent.ForAgent("reco").GetHashCode());
         agent.ToString().ShouldContain("Agent");
     }
+
+    [Fact]
+    public void ConversationEvent_Categorias_YCategoryRecommendation()
+    {
+        CategoryRecommendation recommendation = new("Transporte", 261, false, 0.9);
+        ConversationEvent categories = ConversationEvent.ForCategories("accidentalidad vial", [recommendation]);
+
+        categories.Kind.ShouldBe(ConversationEventKind.Categories);
+        categories.Query.ShouldBe("accidentalidad vial");
+        CategoryRecommendation single = categories.Categories.ShouldNotBeNull().ShouldHaveSingleItem();
+        single.Name.ShouldBe("Transporte");
+        single.Count.ShouldBe(261);
+        single.Loaded.ShouldBeFalse();
+        single.Relevance.ShouldBe(0.9);
+        (recommendation with { Loaded = true }).ShouldNotBe(recommendation);
+        recommendation.ToString().ShouldContain("Transporte");
+    }
+
+    [Fact]
+    public void ConversationEvent_TablaYGrafico()
+    {
+        TableArtifact table = new("Mortalidad", ["genero", "total"], [["M", "1"], ["F", "2"]]);
+        ChartArtifact chart = new("Mortalidad", "bar", "genero", "total");
+
+        ConversationEvent tableEvent = ConversationEvent.ForTable(table);
+        tableEvent.Kind.ShouldBe(ConversationEventKind.Table);
+        tableEvent.Table.ShouldNotBeNull().Columns.ShouldBe(["genero", "total"]);
+        tableEvent.Table.Rows.Count.ShouldBe(2);
+
+        ConversationEvent chartEvent = ConversationEvent.ForChart(chart);
+        chartEvent.Kind.ShouldBe(ConversationEventKind.Chart);
+        chartEvent.Chart.ShouldNotBeNull().Type.ShouldBe("bar");
+        chartEvent.Chart.XColumn.ShouldBe("genero");
+        (chart with { Type = "line" }).ShouldNotBe(chart);
+        table.ToString().ShouldContain("Mortalidad");
+    }
 }

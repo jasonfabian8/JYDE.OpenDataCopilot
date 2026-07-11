@@ -83,4 +83,22 @@ public sealed class MongoCatalogRepository : ICatalogRepository
             }
         }
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> GetLoadedCategoriesAsync(CancellationToken cancellationToken = default)
+    {
+        using IAsyncCursor<string?> cursor = await _collection.DistinctAsync(
+            document => document.Category,
+            FilterDefinition<DatasetDocument>.Empty,
+            cancellationToken: cancellationToken);
+        List<string?> distinct = await cursor.ToListAsync(cancellationToken);
+
+        return
+        [
+            .. distinct
+                .Where(category => !string.IsNullOrWhiteSpace(category))
+                .Select(category => category!)
+                .OrderBy(category => category, StringComparer.OrdinalIgnoreCase)
+        ];
+    }
 }

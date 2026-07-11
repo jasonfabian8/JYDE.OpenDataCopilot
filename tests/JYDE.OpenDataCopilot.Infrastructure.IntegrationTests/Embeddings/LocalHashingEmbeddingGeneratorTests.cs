@@ -65,6 +65,20 @@ public sealed class LocalHashingEmbeddingGeneratorTests
     }
 
     [Fact]
+    public async Task GenerateBatchAsync_DevuelveUnVectorPorTexto_YCoincideConElIndividual()
+    {
+        LocalHashingEmbeddingGenerator generator = new(dimensions: 32);
+
+        IReadOnlyList<IReadOnlyList<float>> batch = await generator.GenerateBatchAsync(
+            ["accidentalidad vial", "cobertura de salud"], TestContext.Current.CancellationToken);
+        IReadOnlyList<float> single = await generator.GenerateAsync("accidentalidad vial", TestContext.Current.CancellationToken);
+
+        batch.Count.ShouldBe(2);
+        batch.ShouldAllBe(vector => vector.Count == 32);
+        batch[0].ShouldBe(single);
+    }
+
+    [Fact]
     public void Constructor_ConDimensionInvalida_Lanza()
     {
         Should.Throw<ArgumentOutOfRangeException>(() => new LocalHashingEmbeddingGenerator(0));

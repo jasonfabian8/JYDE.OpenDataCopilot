@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenData Copilot — Asistente</title>
+    <meta
+      name="description"
+      content="Asistente conversacional sobre los datos abiertos de Colombia (datos.gov.co). Pregunta en lenguaje natural y recibe recomendaciones de datasets con la fuente citada."
+    />
+
+    <!-- Tipografías compartidas con la landing (serif editorial + grotesca + monoespaciada). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Fondo oscuro inmediato (evita el parpadeo claro antes de montar React). -->
+    <style>
+      html,
+      body {
+        background-color: #201e1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="copilot-root"></div>
+    <script type="module" src="/src/copilot.tsx"></script>
+  </body>
+</html>

@@ -30,10 +30,10 @@ export function SiteHeader(): ReactElement {
         </nav>
 
         <a
-          href="#demo"
+          href="/copilot/"
           className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition-transform hover:-translate-y-0.5"
         >
-          Ver demo
+          Abrir Copilot
         </a>
       </div>
     </header>

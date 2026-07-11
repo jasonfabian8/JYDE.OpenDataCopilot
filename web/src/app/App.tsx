@@ -5,21 +5,18 @@ import { Mission } from "../features/landing/components/Mission.tsx";
 import { HowItWorks } from "../features/landing/components/HowItWorks.tsx";
 import { Principles } from "../features/landing/components/Principles.tsx";
 import { SiteFooter } from "../features/landing/components/SiteFooter.tsx";
-import { OperationsPanel } from "../features/operations/components/OperationsPanel.tsx";
-import { ChatPanel } from "../features/chat/components/ChatPanel.tsx";
 
-/** Raíz de la landing pública: compone las secciones del sitio. */
+/** Raíz de la landing pública (informativa): compone las secciones del sitio.
+ *  El chat conversacional y las operaciones viven en la app del Copilot (`/copilot/`). */
 export function App(): ReactElement {
   return (
     <>
       <SiteHeader />
       <main>
         <Hero />
-        <ChatPanel />
         <Mission />
         <HowItWorks />
         <Principles />
-        <OperationsPanel />
       </main>
       <SiteFooter />
     </>

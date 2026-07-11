@@ -1,7 +1,6 @@
 using JYDE.OpenDataCopilot.Application.Conversation;
 using JYDE.OpenDataCopilot.Infrastructure.Chat;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Chat;
 

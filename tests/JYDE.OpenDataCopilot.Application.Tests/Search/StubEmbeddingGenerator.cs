@@ -14,4 +14,17 @@ internal sealed class StubEmbeddingGenerator : IEmbeddingGenerator
         IReadOnlyList<float> vector = [text.Length, 1f];
         return Task.FromResult(vector);
     }
+
+    public async Task<IReadOnlyList<IReadOnlyList<float>>> GenerateBatchAsync(
+        IReadOnlyList<string> texts,
+        CancellationToken cancellationToken = default)
+    {
+        List<IReadOnlyList<float>> vectors = new(texts.Count);
+        foreach (string text in texts)
+        {
+            vectors.Add(await GenerateAsync(text, cancellationToken));
+        }
+
+        return vectors;
+    }
 }

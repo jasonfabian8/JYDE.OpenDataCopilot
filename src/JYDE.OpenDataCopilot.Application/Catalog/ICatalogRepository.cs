@@ -24,4 +24,9 @@ public interface ICatalogRepository
     /// <summary>Recupera todos los datasets almacenados, transmitidos de forma perezosa.</summary>
     /// <param name="cancellationToken">Token de cancelación.</param>
     IAsyncEnumerable<Dataset> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Devuelve las categorías presentes en el catálogo almacenado (distintas, sin nulas).</summary>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    /// <returns>Nombres de categoría ya cargadas (para saber qué falta por cargar).</returns>
+    Task<IReadOnlyList<string>> GetLoadedCategoriesAsync(CancellationToken cancellationToken = default);
 }

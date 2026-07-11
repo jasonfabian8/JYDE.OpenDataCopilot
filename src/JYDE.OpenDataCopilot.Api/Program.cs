@@ -1,5 +1,6 @@
 using JYDE.OpenDataCopilot.Application.Catalog;
 using JYDE.OpenDataCopilot.Application.Conversation;
+using JYDE.OpenDataCopilot.Application.Figures;
 using JYDE.OpenDataCopilot.Application.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Catalog;
 using JYDE.OpenDataCopilot.Infrastructure.Chat;
@@ -69,6 +70,11 @@ else
 
 builder.Services.AddTransient<IngestCatalogService>();
 builder.Services.AddTransient<CatalogQueryService>();
+builder.Services.AddTransient<ListCatalogCategoriesService>();
+
+// Cifras: consulta de datos reales (SoQL) vía la API SODA de Socrata.
+builder.Services.AddHttpClient<IDataQuery, SocrataDataQuery>(
+    client => client.Timeout = TimeSpan.FromSeconds(socrataOptions.TimeoutSeconds));
 
 // Search: embeddings = Local (por defecto, $0) o Foundry (Azure AI Foundry).
 if (IsFoundry(embeddingsProvider))
@@ -93,19 +99,85 @@ else
 builder.Services.AddTransient<IndexCatalogService>();
 builder.Services.AddTransient<SearchDatasetsService>();
 
-// Conversación (Copilot multiagente, ver ADR-0015). LLM: Fake ($0) o Foundry (agentes publicados).
+// Conversación (Copilot multiagente, ver ADR-0015). LLM: Fake ($0) o Foundry (agentes publicados),
+// envuelto por un decorador de auditoría que registra cada interacción (para el panel de auditoría).
+// El grabador y el chat auditado son SCOPED (por petición): el orquestador (iterador asíncrono) y el
+// decorador comparten la misma instancia del turno. AsyncLocal no sirve porque no sobrevive los yield.
+builder.Services.AddScoped<IInteractionRecorder, InteractionRecorder>();
 if (IsFoundry(chatProvider))
 {
-    builder.Services.AddHttpClient<IChatCompletion, FoundryChatCompletion>();
+    builder.Services.AddHttpClient<FoundryChatCompletion>();
+    builder.Services.AddScoped<IChatCompletion>(provider => new AuditingChatCompletion(
+        provider.GetRequiredService<FoundryChatCompletion>(),
+        provider.GetRequiredService<IInteractionRecorder>()));
 }
 else
 {
-    builder.Services.AddSingleton<IChatCompletion, FakeChatCompletion>();
+    builder.Services.AddSingleton<FakeChatCompletion>();
+    builder.Services.AddScoped<IChatCompletion>(provider => new AuditingChatCompletion(
+        provider.GetRequiredService<FakeChatCompletion>(),
+        provider.GetRequiredService<IInteractionRecorder>()));
 }
 
-builder.Services.AddSingleton<IConversationAgent, DatasetRecommenderAgent>();
-builder.Services.AddSingleton<IAgentRouter, DefaultAgentRouter>();
-builder.Services.AddTransient<CopilotOrchestrator>();
+// Agente de categorías: recomienda qué categorías cargar. Se registra PRIMERO para que, en la
+// reserva por reglas, capture las consultas de intención "categorías/cargar".
+double categoryRelevanceThreshold =
+    builder.Configuration.GetValue<double?>("Conversation:CategoryRelevanceThreshold")
+    ?? CategoryRecommenderAgent.DefaultRelevanceThreshold;
+builder.Services.AddScoped<IConversationAgent>(provider => new CategoryRecommenderAgent(
+    provider.GetRequiredService<ICatalogSource>(),
+    provider.GetRequiredService<ICatalogRepository>(),
+    provider.GetRequiredService<IChatCompletion>(),
+    categoryRelevanceThreshold));
+
+// Umbral de relevancia RECALCULADA por el LLM (configurable), compartido por analista y recomendador.
+double relevanceThreshold =
+    builder.Configuration.GetValue<double?>("Search:RelevanceThreshold")
+    ?? DatasetRecommenderAgent.DefaultRelevanceThreshold;
+
+// Agente analista: describe columnas y evalúa cruces/correlaciones (metadatos del catálogo). Se
+// registra antes del recomendador para que la reserva por reglas capture "columnas/cruzar/correlación".
+builder.Services.AddScoped<IConversationAgent>(provider => new DatasetAnalystAgent(
+    provider.GetRequiredService<IEmbeddingGenerator>(),
+    provider.GetRequiredService<IDatasetSearchIndex>(),
+    provider.GetRequiredService<ICatalogRepository>(),
+    provider.GetRequiredService<IChatCompletion>(),
+    relevanceThreshold));
+
+// Agente de cifras: consulta datos reales (SoQL) para tabular y graficar. Antes del recomendador.
+builder.Services.AddScoped<IConversationAgent>(provider => new FiguresAgent(
+    provider.GetRequiredService<IEmbeddingGenerator>(),
+    provider.GetRequiredService<IDatasetSearchIndex>(),
+    provider.GetRequiredService<ICatalogRepository>(),
+    provider.GetRequiredService<IChatCompletion>(),
+    provider.GetRequiredService<IDataQuery>()));
+
+// Agente recomendador de datasets: recomienda entre candidatos del índice.
+builder.Services.AddScoped<IConversationAgent>(provider => new DatasetRecommenderAgent(
+    provider.GetRequiredService<IEmbeddingGenerator>(),
+    provider.GetRequiredService<IDatasetSearchIndex>(),
+    provider.GetRequiredService<IChatCompletion>(),
+    relevanceThreshold));
+
+// Enrutador: basado en LLM cuando el chat es Foundry (agente enrutador publicado); por reglas en
+// local/Fake. El enrutador LLM degrada a reglas si el agente no está disponible.
+if (IsFoundry(chatProvider))
+{
+    string routerAgent = builder.Configuration["Conversation:RouterAgent"] ?? LlmAgentRouter.DefaultRouterAgent;
+    builder.Services.AddScoped<IAgentRouter>(provider =>
+        new LlmAgentRouter(provider.GetRequiredService<IChatCompletion>(), routerAgent));
+}
+else
+{
+    builder.Services.AddScoped<IAgentRouter, DefaultAgentRouter>();
+}
+
+// Rastreador del objetivo de la conversación (memoria): resume el propósito para no perder el hilo.
+string objectiveAgent = builder.Configuration["Conversation:ObjectiveAgent"] ?? ObjectiveTracker.DefaultAgent;
+builder.Services.AddScoped(provider =>
+    new ObjectiveTracker(provider.GetRequiredService<IChatCompletion>(), objectiveAgent));
+
+builder.Services.AddScoped<CopilotOrchestrator>();
 
 WebApplication app = builder.Build();
 

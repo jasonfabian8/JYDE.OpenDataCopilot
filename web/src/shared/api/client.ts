@@ -20,6 +20,20 @@ export interface IndexResult {
   readonly indexed: number;
 }
 
+/** Categoría temática del catálogo con su conteo de datasets. */
+export interface CatalogCategory {
+  readonly name: string;
+  readonly count: number;
+}
+
+/** Opciones para acotar una ingesta del catálogo. */
+export interface IngestOptions {
+  /** Categorías a incluir; vacío/omitido = el catálogo completo. */
+  readonly categories?: ReadonlyArray<string>;
+  /** Máximo de datasets a ingerir; omitido = sin límite. */
+  readonly limit?: number;
+}
+
 async function request<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
   const response: Response = await fetch(`${baseUrl}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -35,15 +49,24 @@ async function request<TResponse>(path: string, init?: RequestInit): Promise<TRe
 
 /** Operaciones del catálogo. */
 export const catalogApi = {
-  /** Ingiere el catálogo desde la fuente (opcionalmente acotado por un límite). */
-  ingest: (limit?: number): Promise<IngestResult> =>
+  /** Ingiere el catálogo desde la fuente, acotado por categorías y/o límite (vacío = el catálogo completo). */
+  ingest: (options: IngestOptions = {}): Promise<IngestResult> =>
     request<IngestResult>("/catalog/ingest", {
       method: "POST",
-      body: JSON.stringify(typeof limit === "number" ? { limit } : {}),
+      body: JSON.stringify({
+        ...(options.categories !== undefined && options.categories.length > 0
+          ? { categories: options.categories }
+          : {}),
+        ...(typeof options.limit === "number" ? { limit: options.limit } : {}),
+      }),
     }),
 
   /** Devuelve la cantidad de datasets almacenados. */
   count: (): Promise<CountResult> => request<CountResult>("/catalog/count"),
+
+  /** Lista las categorías temáticas del catálogo (con su conteo) para acotar la ingesta. */
+  categories: (): Promise<ReadonlyArray<CatalogCategory>> =>
+    request<ReadonlyArray<CatalogCategory>>("/catalog/categories"),
 };
 
 /** Operaciones de búsqueda. */
@@ -60,13 +83,53 @@ export interface ChatSource {
   readonly score: number;
 }
 
+/** Categoría recomendada por el Copilot (acción sugerida: cargarla). */
+export interface ChatCategory {
+  readonly name: string;
+  readonly count: number;
+  readonly loaded: boolean;
+  readonly relevance: number;
+}
+
+/** Artefacto de tabla (datos tabulados) que muestra el panel de artefactos. */
+export interface ChatTable {
+  readonly title: string;
+  readonly columns: ReadonlyArray<string>;
+  readonly rows: ReadonlyArray<ReadonlyArray<string>>;
+}
+
+/** Artefacto de gráfico; el frontend lo dibuja a partir de la tabla del mismo turno. */
+export interface ChatChart {
+  readonly title: string;
+  readonly type: string;
+  readonly xColumn: string;
+  readonly yColumn: string;
+}
+
+/** Interacción cruda con un agente (auditoría): mensaje enviado y respuesta. */
+export interface ChatInteraction {
+  readonly agent: string;
+  readonly request: string;
+  readonly response: string;
+}
+
 /** Evento del flujo de chat (SSE). */
 export type ChatEvent =
   | { readonly kind: "agent"; readonly agent: string }
   | { readonly kind: "sources"; readonly sources: ReadonlyArray<ChatSource> }
+  | { readonly kind: "categories"; readonly query: string; readonly categories: ReadonlyArray<ChatCategory> }
+  | { readonly kind: "objective"; readonly objective: string }
+  | { readonly kind: "table"; readonly table: ChatTable }
+  | { readonly kind: "chart"; readonly chart: ChatChart }
+  | { readonly kind: "audit"; readonly interactions: ReadonlyArray<ChatInteraction> }
   | { readonly kind: "token"; readonly text: string }
   | { readonly kind: "conversation"; readonly conversationId: string }
   | { readonly kind: "done" };
+
+/** Lee una propiedad de texto del payload SSE, o cadena vacía si no es string. */
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
 
 function parseSseFrame(frame: string): ChatEvent | null {
   let eventName = "";
@@ -86,13 +149,27 @@ function parseSseFrame(frame: string): ChatEvent | null {
   const payload: Record<string, unknown> = data.length > 0 ? JSON.parse(data) : {};
   switch (eventName) {
     case "agent":
-      return { kind: "agent", agent: typeof payload.agent === "string" ? payload.agent : "" };
+      return { kind: "agent", agent: asString(payload.agent) };
     case "sources":
       return { kind: "sources", sources: (payload.sources as ReadonlyArray<ChatSource>) ?? [] };
+    case "categories":
+      return {
+        kind: "categories",
+        query: asString(payload.query),
+        categories: (payload.categories as ReadonlyArray<ChatCategory>) ?? [],
+      };
+    case "objective":
+      return { kind: "objective", objective: asString(payload.objective) };
+    case "table":
+      return { kind: "table", table: (payload.table as ChatTable) ?? { title: "", columns: [], rows: [] } };
+    case "chart":
+      return { kind: "chart", chart: (payload.chart as ChatChart) ?? { title: "", type: "bar", xColumn: "", yColumn: "" } };
+    case "audit":
+      return { kind: "audit", interactions: (payload.interactions as ReadonlyArray<ChatInteraction>) ?? [] };
     case "token":
-      return { kind: "token", text: typeof payload.text === "string" ? payload.text : "" };
+      return { kind: "token", text: asString(payload.text) };
     case "conversation":
-      return { kind: "conversation", conversationId: typeof payload.conversationId === "string" ? payload.conversationId : "" };
+      return { kind: "conversation", conversationId: asString(payload.conversationId) };
     case "done":
       return { kind: "done" };
     default:
@@ -109,10 +186,22 @@ export const chatApi = {
     question: string,
     conversationId: string | null,
     signal: AbortSignal,
+    objective: string = "",
+    selectedDatasets: ReadonlyArray<{ readonly id: string; readonly name: string }> = [],
+    context: string = "",
   ): AsyncGenerator<ChatEvent> {
     const body: Record<string, unknown> = { question };
     if (conversationId !== null) {
       body.conversationId = conversationId;
+    }
+    if (objective.length > 0) {
+      body.objective = objective;
+    }
+    if (selectedDatasets.length > 0) {
+      body.selectedDatasets = selectedDatasets;
+    }
+    if (context.length > 0) {
+      body.context = context;
     }
 
     const response: Response = await fetch(`${baseUrl}/chat`, {

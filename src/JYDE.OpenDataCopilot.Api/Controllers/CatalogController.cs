@@ -12,17 +12,24 @@ public sealed class CatalogController : ControllerBase
 {
     private readonly IngestCatalogService _ingestService;
     private readonly CatalogQueryService _queryService;
+    private readonly ListCatalogCategoriesService _categoriesService;
 
     /// <summary>Crea el controlador del catálogo.</summary>
     /// <param name="ingestService">Caso de uso de ingesta.</param>
     /// <param name="queryService">Caso de uso de consulta (lectura).</param>
-    public CatalogController(IngestCatalogService ingestService, CatalogQueryService queryService)
+    /// <param name="categoriesService">Caso de uso de listado de categorías.</param>
+    public CatalogController(
+        IngestCatalogService ingestService,
+        CatalogQueryService queryService,
+        ListCatalogCategoriesService categoriesService)
     {
         ArgumentNullException.ThrowIfNull(ingestService);
         ArgumentNullException.ThrowIfNull(queryService);
+        ArgumentNullException.ThrowIfNull(categoriesService);
 
         _ingestService = ingestService;
         _queryService = queryService;
+        _categoriesService = categoriesService;
     }
 
     /// <summary>Ingiere el catálogo de datasets desde la fuente configurada.</summary>
@@ -34,9 +41,8 @@ public sealed class CatalogController : ControllerBase
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CatalogIngestRequest? request,
         CancellationToken cancellationToken)
     {
-        CatalogFilter filter = request is null
-            ? CatalogFilter.All
-            : new CatalogFilter(request.Categories, request.Limit);
+        // Saneamiento en la frontera: el request acota límite y categorías (defensa CWE-834).
+        CatalogFilter filter = request?.ToFilter() ?? CatalogFilter.All;
 
         IngestCatalogResult result = await _ingestService.ExecuteAsync(filter, cancellationToken);
         return Ok(result);
@@ -49,6 +55,15 @@ public sealed class CatalogController : ControllerBase
     {
         int count = await _queryService.CountAsync(cancellationToken);
         return Ok(new { count });
+    }
+
+    /// <summary>Lista las categorías temáticas del catálogo (con su conteo), para acotar la ingesta.</summary>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    [HttpGet("categories")]
+    public async Task<IActionResult> Categories(CancellationToken cancellationToken)
+    {
+        IReadOnlyList<CatalogCategory> categories = await _categoriesService.ExecuteAsync(cancellationToken);
+        return Ok(categories);
     }
 
     /// <summary>Obtiene un dataset por su identificador 4x4.</summary>

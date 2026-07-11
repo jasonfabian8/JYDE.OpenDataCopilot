@@ -86,6 +86,35 @@ public sealed class FoundryEmbeddingGeneratorTests
     }
 
     [Fact]
+    public async Task GenerateBatchAsync_DevuelveUnEmbeddingPorTexto_ReordenadoPorIndice()
+    {
+        FakeFoundryHandler handler = new("""{"data":[{"index":1,"embedding":[0.4,0.5,0.6]},{"index":0,"embedding":[0.1,0.2,0.3]}]}""");
+        FoundryEmbeddingGenerator generator = Create(handler, Options());
+
+        IReadOnlyList<IReadOnlyList<float>> result =
+            await generator.GenerateBatchAsync(["uno", "dos"], TestContext.Current.CancellationToken);
+
+        result.Count.ShouldBe(2);
+        result[0][0].ShouldBe(0.1f, 1e-5f); // reordenado por "index"
+        result[1][0].ShouldBe(0.4f, 1e-5f);
+        handler.LastBody.ShouldNotBeNull();
+        handler.LastBody.ShouldContain("uno");
+    }
+
+    [Fact]
+    public async Task GenerateBatchAsync_SinTextos_NoLlamaYDevuelveVacio()
+    {
+        FakeFoundryHandler handler = new("""{"data":[]}""");
+        FoundryEmbeddingGenerator generator = Create(handler, Options());
+
+        IReadOnlyList<IReadOnlyList<float>> result =
+            await generator.GenerateBatchAsync([], TestContext.Current.CancellationToken);
+
+        result.ShouldBeEmpty();
+        handler.LastUri.ShouldBeNull();
+    }
+
+    [Fact]
     public void Constructor_ConArgumentosNulos_Lanza()
     {
         Should.Throw<ArgumentNullException>(() => new FoundryEmbeddingGenerator(null!, Options()));
