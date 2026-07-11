@@ -1,5 +1,7 @@
 # 🚀 OpenData Copilot
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=jasonfabian8_JYDE.OpenDataCopilot&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=jasonfabian8_JYDE.OpenDataCopilot)
+
 ## Conversa con los datos abiertos de Colombia
 
 ¿Qué pasaría si cualquier ciudadano pudiera hacer preguntas sobre información pública de la misma forma en que conversa con un asistente de IA?
