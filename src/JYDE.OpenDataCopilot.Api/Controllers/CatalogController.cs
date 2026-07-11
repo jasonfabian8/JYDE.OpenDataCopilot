@@ -34,9 +34,8 @@ public sealed class CatalogController : ControllerBase
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CatalogIngestRequest? request,
         CancellationToken cancellationToken)
     {
-        CatalogFilter filter = request is null
-            ? CatalogFilter.All
-            : new CatalogFilter(request.Categories, request.Limit);
+        // Saneamiento en la frontera: el request acota límite y categorías (defensa CWE-834).
+        CatalogFilter filter = request?.ToFilter() ?? CatalogFilter.All;
 
         IngestCatalogResult result = await _ingestService.ExecuteAsync(filter, cancellationToken);
         return Ok(result);
