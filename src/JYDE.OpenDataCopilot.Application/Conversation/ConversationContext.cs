@@ -5,10 +5,10 @@ namespace JYDE.OpenDataCopilot.Application.Conversation;
 /// <param name="TopK">Número máximo de datasets relevantes a considerar.</param>
 /// <param name="PreviousResponseId">Identificador del turno anterior para continuar el hilo (nulo si es nuevo).</param>
 /// <param name="Objective">Objetivo acumulado de la conversación (memoria), para no perder el hilo.</param>
-/// <param name="SelectedDatasets">Nombres de datasets que el usuario mantiene seleccionados.</param>
+/// <param name="SelectedDatasets">Datasets (id + nombre) que el usuario mantiene fijados.</param>
 public sealed record ConversationContext(
     string Question,
     int TopK,
     string? PreviousResponseId = null,
     string? Objective = null,
-    IReadOnlyList<string>? SelectedDatasets = null);
+    IReadOnlyList<SelectedDataset>? SelectedDatasets = null);

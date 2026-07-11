@@ -209,6 +209,9 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : "Ocurrió un error inesperado.";
 }
 
+/** Agentes que trabajan sobre un dataset concreto: al citarlo, se auto-fija en la memoria. */
+const ANALYSIS_AGENTS: readonly string[] = ["dataset-analyst-agent", "figures-agent"];
+
 export const useCopilotStore = create<CopilotState>((set, get) => {
   const patchConversation = (id: string, updater: (conversation: Conversation) => Conversation): void =>
     set({ conversations: get().conversations.map((c) => (c.id === id ? updater(c) : c)) });
@@ -275,7 +278,8 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
       const threadId: string | null =
         get().conversations.find((c) => c.id === activeId)?.threadId ?? null;
       const controller: AbortController = new AbortController();
-      const selectedNames: string[] = get().selectedDatasets.map((dataset) => dataset.name);
+      // Datasets fijados (id + nombre): el backend los antepone como candidatos con su esquema.
+      const pinnedDatasets: ReadonlyArray<SelectedDataset> = get().selectedDatasets;
       // Contexto de enrutamiento: la respuesta anterior del Copilot (para desambiguar un "sí").
       const priorMessages: ReadonlyArray<CopilotMessage> =
         get().conversations.find((c) => c.id === activeId)?.messages ?? [];
@@ -283,7 +287,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
         [...priorMessages].reverse().find((message) => message.role === "assistant")?.content.slice(0, 800) ?? "";
       try {
         for await (const event of chatApi.stream(
-          question, threadId, controller.signal, get().objective, selectedNames, routeContext,
+          question, threadId, controller.signal, get().objective, pinnedDatasets, routeContext,
         )) {
           applyEvent(event);
         }
@@ -318,9 +322,17 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
           case "agent":
             set({ agent: event.agent });
             break;
-          case "sources":
+          case "sources": {
             set({ streamingSources: event.sources });
+            // Auto-fija el dataset analizado: si el agente en curso analiza/consulta un dataset
+            // concreto, el usuario está trabajando sobre él → lo mantenemos en memoria (idempotente).
+            const currentAgent: string | null = get().agent;
+            const top = event.sources[0];
+            if (top !== undefined && currentAgent !== null && ANALYSIS_AGENTS.includes(currentAgent)) {
+              get().pinDataset({ id: top.datasetId, name: top.name });
+            }
             break;
+          }
           case "categories":
             set({ streamingCategories: event.categories, streamingQuery: event.query });
             break;

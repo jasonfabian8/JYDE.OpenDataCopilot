@@ -95,7 +95,10 @@ public sealed class FiguresAgent : IConversationAgent
     {
         yield return ConversationEvent.ForAgent(Name);
 
-        IReadOnlyList<Dataset> datasets = await ResolveDatasetsAsync(context.Question, context.TopK, cancellationToken);
+        // Candidatos con su esquema: PRIMERO los datasets fijados por el usuario, luego los mejores
+        // por búsqueda semántica (así las cifras/gráficos contemplan el dataset que el usuario eligió).
+        IReadOnlyList<Dataset> datasets =
+            await DatasetCandidates.ResolveAsync(context, _embeddings, _index, _repository, CandidateCount, cancellationToken);
         if (datasets.Count == 0)
         {
             foreach (ConversationEvent noData in EmitText("No encontré un dataset con datos para consultar esta cifra. Prueba a describir mejor el tema o cargar la categoría correspondiente."))
@@ -161,31 +164,6 @@ public sealed class FiguresAgent : IConversationAgent
         yield return ConversationEvent.Completed();
     }
 
-    private async Task<IReadOnlyList<Dataset>> ResolveDatasetsAsync(string question, int topK, CancellationToken cancellationToken)
-    {
-        int candidates = Math.Max(topK, CandidateCount);
-        IReadOnlyList<float> queryEmbedding = await _embeddings.GenerateAsync(question, cancellationToken);
-        IReadOnlyList<DatasetSearchHit> hits = await _index.SearchAsync(queryEmbedding, candidates, cancellationToken);
-
-        List<Dataset> datasets = [];
-        foreach (DatasetSearchHit hit in hits)
-        {
-            DatasetId? id = TryCreateId(hit.Id);
-            if (id is null)
-            {
-                continue;
-            }
-
-            Dataset? dataset = await _repository.GetByIdAsync(id, cancellationToken);
-            if (dataset is not null)
-            {
-                datasets.Add(dataset);
-            }
-        }
-
-        return datasets;
-    }
-
     private async Task<(DataQueryResult? Data, string? Error)> ExecuteAsync(string datasetId, string soql, CancellationToken cancellationToken)
     {
         try
@@ -238,18 +216,6 @@ public sealed class FiguresAgent : IConversationAgent
             return JsonSerializer.Deserialize<FiguresReply>(json, JsonOptions);
         }
         catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    private static DatasetId? TryCreateId(string value)
-    {
-        try
-        {
-            return new DatasetId(value);
-        }
-        catch (ArgumentException)
         {
             return null;
         }

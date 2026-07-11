@@ -18,7 +18,7 @@ internal static class ContextHeader
 
         if (context.SelectedDatasets is { Count: > 0 } selected)
         {
-            lines.Add($"Datasets seleccionados por el usuario: {string.Join(", ", selected)}");
+            lines.Add($"Datasets seleccionados por el usuario: {string.Join(", ", selected.Select(dataset => dataset.Name))}");
         }
 
         return lines.Count == 0

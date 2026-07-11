@@ -182,7 +182,7 @@ export const chatApi = {
     conversationId: string | null,
     signal: AbortSignal,
     objective: string = "",
-    selectedDatasets: ReadonlyArray<string> = [],
+    selectedDatasets: ReadonlyArray<{ readonly id: string; readonly name: string }> = [],
     context: string = "",
   ): AsyncGenerator<ChatEvent> {
     const body: Record<string, unknown> = { question };

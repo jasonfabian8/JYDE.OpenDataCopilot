@@ -96,26 +96,10 @@ public sealed class DatasetAnalystAgent : IConversationAgent
     {
         yield return ConversationEvent.ForAgent(Name);
 
-        int candidates = Math.Max(context.TopK, CandidateCount);
-        IReadOnlyList<float> queryEmbedding = await _embeddings.GenerateAsync(context.Question, cancellationToken);
-        IReadOnlyList<DatasetSearchHit> hits = await _index.SearchAsync(queryEmbedding, candidates, cancellationToken);
-
-        // Traemos el esquema COMPLETO (columnas) del repositorio para cada candidato.
-        List<Dataset> datasets = [];
-        foreach (DatasetSearchHit hit in hits)
-        {
-            DatasetId? id = TryCreateId(hit.Id);
-            if (id is null)
-            {
-                continue;
-            }
-
-            Dataset? dataset = await _repository.GetByIdAsync(id, cancellationToken);
-            if (dataset is not null)
-            {
-                datasets.Add(dataset);
-            }
-        }
+        // Candidatos con su esquema: PRIMERO los datasets fijados por el usuario (para que el analista
+        // siempre disponga de lo que eligió), luego los mejores por búsqueda semántica.
+        IReadOnlyList<Dataset> datasets =
+            await DatasetCandidates.ResolveAsync(context, _embeddings, _index, _repository, CandidateCount, cancellationToken);
 
         ChatPrompt prompt = new(Name, ContextHeader.For(context) + BuildInput(context.Question, datasets), context.PreviousResponseId);
         ChatResult result = await _chat.CompleteAsync(prompt, cancellationToken);
@@ -188,18 +172,6 @@ public sealed class DatasetAnalystAgent : IConversationAgent
             return JsonSerializer.Deserialize<RecommenderReply>(json, JsonOptions);
         }
         catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    private static DatasetId? TryCreateId(string value)
-    {
-        try
-        {
-            return new DatasetId(value);
-        }
-        catch (ArgumentException)
         {
             return null;
         }

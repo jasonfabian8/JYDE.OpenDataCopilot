@@ -96,6 +96,35 @@ public sealed class DatasetAnalystAgentTests
     }
 
     [Fact]
+    public async Task HandleAsync_IncluyeElDatasetFijado_PrimeroYConSusColumnas_AunqueLaBusquedaNoLoDevuelva()
+    {
+        // Escenario real: la búsqueda semántica solo devuelve ruido (Educación), pero el usuario fijó
+        // "Indicadores de Morbilidad". El analista debe recibir su esquema (primero) y poder citarlo.
+        Dataset educacion = DatasetWith("eduu-0001", "Resultados Saber Pro", "Educación",
+            Col("PUNT_GLOBAL", "Number", null));
+        Dataset morbilidad = DatasetWith("xpi4-vt35", "Indicadores de Morbilidad 2019", "Salud",
+            Col("Diagnóstico", "Text", "Código CIE-10"), Col("Casos", "Number", "Número de casos"));
+        (DatasetAnalystAgent agent, StubChatCompletion chat) = await BuildAsync(
+            ReplyJson("Estas son las columnas.", ("xpi4-vt35", 0.95)),
+            [Hit("eduu-0001")], // la búsqueda NO devuelve el dataset fijado
+            educacion, morbilidad);
+
+        List<ConversationEvent> events = await CollectAsync(agent.HandleAsync(
+            new ConversationContext("listame las columnas del dataset", 5, null, null,
+                [new SelectedDataset("xpi4-vt35", "Indicadores de Morbilidad 2019")]),
+            TestContext.Current.CancellationToken));
+
+        chat.LastPrompt.ShouldNotBeNull();
+        string input = chat.LastPrompt.Input;
+        input.ShouldContain("[id=xpi4-vt35]");
+        input.ShouldContain("Diagnóstico (Text) — Código CIE-10");
+        input.IndexOf("[id=xpi4-vt35]", StringComparison.Ordinal)
+            .ShouldBeLessThan(input.IndexOf("[id=eduu-0001]", StringComparison.Ordinal)); // fijado va primero
+        events.Single(e => e.Kind == ConversationEventKind.Sources)
+            .Sources.ShouldNotBeNull().ShouldContain(citation => citation.DatasetId == "xpi4-vt35");
+    }
+
+    [Fact]
     public async Task HandleAsync_OmiteHitsConIdInvalidoONoEnElRepositorio()
     {
         Dataset stored = DatasetWith("aaaa-0001", "Uno", "Cat", Col("A", "Text", "a"));

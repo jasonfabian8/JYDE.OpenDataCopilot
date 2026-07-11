@@ -189,7 +189,8 @@ describe("useCopilotStore", () => {
 
     await useCopilotStore.getState().send();
 
-    expect(chat.stream).toHaveBeenCalledWith("hola", null, expect.any(AbortSignal), "mi objetivo", ["Dataset A"], "");
+    expect(chat.stream).toHaveBeenCalledWith(
+      "hola", null, expect.any(AbortSignal), "mi objetivo", [{ id: "a", name: "Dataset A" }], "");
   });
 
   it("pinDataset agrega sin duplicar y unpinDataset quita", () => {
@@ -257,6 +258,38 @@ describe("useCopilotStore", () => {
     expect(auditLog[0].interactions).toHaveLength(2);
     expect(auditLog[0].interactions[0].agent).toBe("router-agent");
     expect(auditLog[0].interactions[1].response).toBe("{...}");
+  });
+
+  it("auto-fija el dataset analizado cuando responde un agente de análisis", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "agent", agent: "dataset-analyst-agent" };
+      yield {
+        kind: "sources",
+        sources: [{ datasetId: "xpi4-vt35", name: "Indicadores de Morbilidad 2019", sourceUrl: "https://x", score: 0.95 }],
+      };
+      yield { kind: "token", text: "listo" };
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({ input: "listame las columnas del dataset" });
+
+    await useCopilotStore.getState().send();
+
+    expect(useCopilotStore.getState().selectedDatasets).toEqual([
+      { id: "xpi4-vt35", name: "Indicadores de Morbilidad 2019" },
+    ]);
+  });
+
+  it("NO auto-fija cuando responde el recomendador (agente de descubrimiento)", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "agent", agent: "dataset-recommender-agent" };
+      yield { kind: "sources", sources: [{ datasetId: "aaaa-0001", name: "Otro", sourceUrl: "https://x", score: 0.9 }] };
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({ input: "recomiéndame datasets" });
+
+    await useCopilotStore.getState().send();
+
+    expect(useCopilotStore.getState().selectedDatasets).toHaveLength(0);
   });
 
   it("togglePanel alterna y closePanel cierra el dock derecho", () => {

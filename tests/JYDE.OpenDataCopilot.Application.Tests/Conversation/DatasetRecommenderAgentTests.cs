@@ -71,7 +71,8 @@ public sealed class DatasetRecommenderAgentTests
         DatasetRecommenderAgent agent = new(new StubEmbeddingGenerator(), index, chat);
 
         await CollectAsync(agent.HandleAsync(
-            new ConversationContext("dime más", 3, null, "cruzar mortalidad con deserción", ["Causas de mortalidad 2020", "Deserción escolar"]),
+            new ConversationContext("dime más", 3, null, "cruzar mortalidad con deserción",
+                [new SelectedDataset("mort-2020", "Causas de mortalidad 2020"), new SelectedDataset("deser-esc", "Deserción escolar")]),
             TestContext.Current.CancellationToken));
 
         chat.LastPrompt.ShouldNotBeNull();

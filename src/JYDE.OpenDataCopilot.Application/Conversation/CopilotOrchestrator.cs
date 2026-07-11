@@ -44,7 +44,7 @@ public sealed class CopilotOrchestrator
     /// <param name="topK">Número máximo de datasets relevantes a considerar.</param>
     /// <param name="previousResponseId">Id del turno anterior para continuar el hilo (nulo si es nuevo).</param>
     /// <param name="objective">Objetivo acumulado hasta ahora (memoria); nulo/vacío si es nuevo.</param>
-    /// <param name="selectedDatasets">Datasets que el usuario mantiene seleccionados (nombres).</param>
+    /// <param name="selectedDatasets">Datasets (id + nombre) que el usuario mantiene fijados.</param>
     /// <param name="routeContext">Contexto reciente (respuesta anterior) para desambiguar el enrutamiento.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <exception cref="ArgumentException">Si la pregunta está vacía.</exception>
@@ -54,7 +54,7 @@ public sealed class CopilotOrchestrator
         int topK = DefaultTopK,
         string? previousResponseId = null,
         string? objective = null,
-        IReadOnlyList<string>? selectedDatasets = null,
+        IReadOnlyList<SelectedDataset>? selectedDatasets = null,
         string? routeContext = null,
         CancellationToken cancellationToken = default)
     {
@@ -74,7 +74,7 @@ public sealed class CopilotOrchestrator
         int topK,
         string? previousResponseId,
         string? objective,
-        IReadOnlyList<string>? selectedDatasets,
+        IReadOnlyList<SelectedDataset>? selectedDatasets,
         string? routeContext,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
