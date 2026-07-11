@@ -60,6 +60,49 @@
 }
 
 @layer components {
+  /* ------------------------------------------------------------------
+     Animaciones de entrada del hero (sutiles).
+     Los textos "suben" a su posición y la consola entra desde la derecha.
+     `both` mantiene el estado inicial durante el retardo → sin destello.
+     ------------------------------------------------------------------ */
+  @keyframes od-rise {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes od-enter {
+    from {
+      opacity: 0;
+      transform: translateX(48px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  .animate-rise {
+    animation: od-rise 1.05s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-enter {
+    animation: od-enter 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Respeta la preferencia de reducir movimiento: sin desplazamientos. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-rise,
+    .animate-enter {
+      animation: none;
+    }
+  }
+
   /* Retícula técnica de fondo del hero, difuminada hacia los bordes. */
   .hero-grid {
     position: absolute;
