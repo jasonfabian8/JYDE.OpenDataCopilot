@@ -10,7 +10,7 @@ services:
     container_name: odc-postgres
     environment:
       POSTGRES_USER: odc
-      POSTGRES_PASSWORD: odc_dev
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: opendatacopilot
     ports:
       - "5432:5432"
