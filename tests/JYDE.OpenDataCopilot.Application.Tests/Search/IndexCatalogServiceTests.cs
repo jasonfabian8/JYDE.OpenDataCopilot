@@ -11,10 +11,11 @@ public sealed class IndexCatalogServiceTests
     private static Dataset Full(string id) => new(
         new DatasetId(id),
         $"Dataset {id}",
-        description: "desc",
-        category: "Movilidad",
-        tags: ["t1"],
-        columns: [new DatasetColumn("Col", "col", "text")]);
+        new DatasetMetadata(
+            description: "desc",
+            category: "Movilidad",
+            tags: ["t1"],
+            columns: [new DatasetColumn("Col", "col", "text")]));
 
     [Fact]
     public async Task ExecuteAsync_IndexaTodosLosDatasets_YDevuelveConteo()

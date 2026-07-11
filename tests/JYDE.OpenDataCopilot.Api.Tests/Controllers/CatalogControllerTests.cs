@@ -92,9 +92,10 @@ public sealed class CatalogControllerTests
         Dataset dataset = new(
             new DatasetId("ddau-8cy9"),
             "Accidentalidad",
-            category: "Movilidad",
-            tags: ["movilidad"],
-            columns: [new DatasetColumn("Municipio", "municipio", "text", "Nombre")]);
+            new DatasetMetadata(
+                category: "Movilidad",
+                tags: ["movilidad"],
+                columns: [new DatasetColumn("Municipio", "municipio", "text", "Nombre")]));
         await repository.SaveAsync([dataset], TestContext.Current.CancellationToken);
 
         IActionResult result = await controller.GetById("ddau-8cy9", CancellationToken.None);

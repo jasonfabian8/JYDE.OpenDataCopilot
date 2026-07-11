@@ -79,6 +79,8 @@ docker compose up -d               # dependencias locales (pgvector, qdrant)
 - Rama por feature; commits pequeños y descriptivos. **No commitear sin que el build pase. Y sin autorización previa**
 - Skills disponibles para mantener el patrón: `/new-context`, `/new-adapter`, `/adr`.
 - Al tomar una decisión de arquitectura, registra un ADR (`/adr`) y, si aplica, actualiza el SAD.
+- **Todo diferimiento consciente se documenta como deuda técnica** en
+  [`docs/tech-debt.md`](docs/tech-debt.md) (con su condición de disparo), no se deja implícito.
 - **Gobierno de librerías:** no introduzcas una dependencia nueva (frontend o backend) sin
   concertarla con el equipo; toda adopción se registra **actualizando el SAD y un ADR** antes de
   usarse. Base de frontend decidida: Vite + Zustand ([ADR-0008](docs/adr/0008-stack-frontend-vite-zustand.md)).
