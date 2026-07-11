@@ -18,6 +18,9 @@ public sealed class CatalogController : ControllerBase
     /// <param name="queryService">Caso de uso de consulta (lectura).</param>
     public CatalogController(IngestCatalogService ingestService, CatalogQueryService queryService)
     {
+        ArgumentNullException.ThrowIfNull(ingestService);
+        ArgumentNullException.ThrowIfNull(queryService);
+
         _ingestService = ingestService;
         _queryService = queryService;
     }

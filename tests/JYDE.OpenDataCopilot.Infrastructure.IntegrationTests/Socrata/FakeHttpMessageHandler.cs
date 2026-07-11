@@ -16,6 +16,7 @@ internal sealed class FakeHttpMessageHandler : HttpMessageHandler
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Requests.Add(request.RequestUri!);
         LastAppToken = request.Headers.TryGetValues("X-App-Token", out IEnumerable<string>? values)
             ? values.FirstOrDefault()

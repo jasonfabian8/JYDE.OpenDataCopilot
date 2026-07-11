@@ -16,14 +16,24 @@ interface DemoState {
 
 const total: number = demoExchanges.length;
 
+if (total === 0) {
+  throw new Error("demoExchanges debe contener al menos un intercambio.");
+}
+
+/** Normaliza un índice arbitrario al rango [0, total) con envoltura circular. */
+const wrapIndex = (index: number): number => ((index % total) + total) % total;
+
 export const useDemoStore = create<DemoState>((set) => ({
   activeIndex: 0,
   active: demoExchanges[0],
   select: (index: number): void =>
-    set({ activeIndex: index, active: demoExchanges[index] }),
+    set(() => {
+      const safeIndex: number = wrapIndex(index);
+      return { activeIndex: safeIndex, active: demoExchanges[safeIndex] };
+    }),
   next: (): void =>
     set((state: DemoState) => {
-      const index: number = (state.activeIndex + 1) % total;
-      return { activeIndex: index, active: demoExchanges[index] };
+      const nextIndex: number = wrapIndex(state.activeIndex + 1);
+      return { activeIndex: nextIndex, active: demoExchanges[nextIndex] };
     }),
 }));
