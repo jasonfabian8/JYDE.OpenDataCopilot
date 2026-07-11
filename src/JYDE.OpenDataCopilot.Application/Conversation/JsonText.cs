@@ -33,19 +33,7 @@ internal static class JsonText
             char current = text[i];
             if (inString)
             {
-                if (escaped)
-                {
-                    escaped = false;
-                }
-                else if (current == '\\')
-                {
-                    escaped = true;
-                }
-                else if (current == '"')
-                {
-                    inString = false;
-                }
-
+                (inString, escaped) = AdvanceString(current, escaped);
                 continue;
             }
 
@@ -57,16 +45,34 @@ internal static class JsonText
             {
                 depth++;
             }
-            else if (current == '}')
+            else if (current == '}' && --depth == 0)
             {
-                depth--;
-                if (depth == 0)
-                {
-                    return text[start..(i + 1)];
-                }
+                return text[start..(i + 1)];
             }
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Avanza el estado del escáner mientras se está DENTRO de una cadena JSON, según el carácter
+    /// actual: consume el escape pendiente, detecta la barra invertida o el cierre de comillas.
+    /// </summary>
+    /// <param name="current">Carácter actual.</param>
+    /// <param name="escaped">Si el carácter anterior abrió un escape (<c>\</c>).</param>
+    /// <returns>El nuevo par (¿seguimos en cadena?, ¿escape pendiente?).</returns>
+    private static (bool InString, bool Escaped) AdvanceString(char current, bool escaped)
+    {
+        if (escaped)
+        {
+            return (true, false);
+        }
+
+        if (current == '\\')
+        {
+            return (true, true);
+        }
+
+        return current == '"' ? (false, false) : (true, false);
     }
 }

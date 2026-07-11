@@ -227,7 +227,7 @@ function describe(error: unknown): string {
 }
 
 /** Agentes que trabajan sobre un dataset concreto: al citarlo, se auto-fija en la memoria. */
-const ANALYSIS_AGENTS: readonly string[] = ["dataset-analyst-agent", "figures-agent"];
+const ANALYSIS_AGENTS: ReadonlySet<string> = new Set(["dataset-analyst-agent", "figures-agent"]);
 
 export const useCopilotStore = create<CopilotState>((set, get) => {
   const patchConversation = (id: string, updater: (conversation: Conversation) => Conversation): void =>
@@ -250,7 +250,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
 
     newConversation: (): void => {
       const active: Conversation | undefined = get().conversations.find((c) => c.id === get().activeId);
-      if (active !== undefined && active.messages.length === 0) {
+      if (active?.messages.length === 0) {
         // Ya estamos en un hilo vacío: no acumulamos conversaciones en blanco.
         set({ input: "" });
         return;
@@ -361,7 +361,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
             // concreto, el usuario está trabajando sobre él → lo mantenemos en memoria (idempotente).
             const currentAgent: string | null = get().agent;
             const top = event.sources[0];
-            if (top !== undefined && currentAgent !== null && ANALYSIS_AGENTS.includes(currentAgent)) {
+            if (top !== undefined && currentAgent !== null && ANALYSIS_AGENTS.has(currentAgent)) {
               get().pinDataset({ id: top.datasetId, name: top.name });
             }
             break;

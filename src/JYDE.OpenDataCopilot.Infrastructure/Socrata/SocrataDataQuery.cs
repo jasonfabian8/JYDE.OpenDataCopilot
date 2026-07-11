@@ -69,13 +69,7 @@ public sealed class SocrataDataQuery : IDataQuery
                 }
             }
 
-            List<string> row = new(columns.Count);
-            foreach (string column in columns)
-            {
-                row.Add(item.TryGetProperty(column, out JsonElement value) ? ToText(value) : string.Empty);
-            }
-
-            rows.Add(row);
+            rows.Add(BuildRow(item, columns));
             if (rows.Count >= MaxRows)
             {
                 break;
@@ -83,6 +77,21 @@ public sealed class SocrataDataQuery : IDataQuery
         }
 
         return new DataQueryResult(columns, rows);
+    }
+
+    /// <summary>Proyecta un objeto JSON a una fila de textos, en el orden de <paramref name="columns"/>.</summary>
+    /// <param name="item">Objeto JSON de la respuesta (una fila del resultado).</param>
+    /// <param name="columns">Columnas conocidas (define el orden y las claves a leer).</param>
+    /// <returns>Los valores de la fila como texto; cadena vacía si falta la propiedad.</returns>
+    private static IReadOnlyList<string> BuildRow(JsonElement item, IReadOnlyList<string> columns)
+    {
+        List<string> row = new(columns.Count);
+        foreach (string column in columns)
+        {
+            row.Add(item.TryGetProperty(column, out JsonElement value) ? ToText(value) : string.Empty);
+        }
+
+        return row;
     }
 
     private static string ToText(JsonElement value) => value.ValueKind switch

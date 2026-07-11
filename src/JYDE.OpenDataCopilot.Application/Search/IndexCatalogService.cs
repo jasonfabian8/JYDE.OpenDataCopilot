@@ -68,7 +68,7 @@ public sealed class IndexCatalogService
     }
 
     /// <summary>Vectoriza un lote de datasets en una sola llamada de embeddings y lo indexa.</summary>
-    private async Task<int> IndexBatchAsync(IReadOnlyList<Dataset> datasets, CancellationToken cancellationToken)
+    private async Task<int> IndexBatchAsync(List<Dataset> datasets, CancellationToken cancellationToken)
     {
         IReadOnlyList<string> texts = [.. datasets.Select(BuildText)];
         IReadOnlyList<IReadOnlyList<float>> embeddings = await _embeddings.GenerateBatchAsync(texts, cancellationToken);

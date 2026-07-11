@@ -29,18 +29,21 @@ function InteractionNode({ interaction }: { readonly interaction: AuditInteracti
 
 /** Tarjeta de un turno: inicia con el mensaje del usuario y despliega el árbol de interacciones. */
 function AuditCard({ entry }: { readonly entry: AuditEntry }): ReactElement {
+  // Key estable por turno+posición (las interacciones no tienen id propio) sin usar el índice del map.
+  const nodes = entry.interactions.map((interaction, index) => ({ key: `${entry.id}-${index}`, interaction }));
+
   return (
     <section className="rounded-xl border border-night-line bg-night-3">
       <div className="border-b border-night-line px-4 py-3">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-night-muted">Usuario</p>
         <p className="mt-1 text-sm text-night-ink">{entry.userMessage}</p>
       </div>
-      {entry.interactions.length === 0 ? (
+      {nodes.length === 0 ? (
         <p className="px-4 py-3 text-sm text-night-muted">Sin interacciones registradas para este turno.</p>
       ) : (
         <div className="space-y-1.5 p-2.5">
-          {entry.interactions.map((interaction, index) => (
-            <InteractionNode key={index} interaction={interaction} />
+          {nodes.map((node) => (
+            <InteractionNode key={node.key} interaction={node.interaction} />
           ))}
         </div>
       )}

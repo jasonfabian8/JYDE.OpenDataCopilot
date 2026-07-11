@@ -17,7 +17,7 @@ export function EmptyState(): ReactElement {
 
   function ask(text: string): void {
     setInput(text);
-    void send();
+    send();
   }
 
   return (

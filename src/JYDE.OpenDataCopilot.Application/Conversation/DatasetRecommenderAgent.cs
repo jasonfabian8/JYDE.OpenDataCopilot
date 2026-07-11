@@ -119,12 +119,9 @@ public sealed class DatasetRecommenderAgent : IConversationAgent
         string answer = string.IsNullOrWhiteSpace(reply.Respuesta) ? HumanText.Salvage(text, ParseFallback) : reply.Respuesta;
 
         Dictionary<string, double> relevanceById = new(StringComparer.OrdinalIgnoreCase);
-        foreach (RecommenderDatasetScore score in reply.Datasets ?? [])
+        foreach (RecommenderDatasetScore score in (reply.Datasets ?? []).Where(score => !string.IsNullOrWhiteSpace(score.Id)))
         {
-            if (!string.IsNullOrWhiteSpace(score.Id))
-            {
-                relevanceById[score.Id] = score.Relevancia;
-            }
+            relevanceById[score.Id!] = score.Relevancia;
         }
 
         IReadOnlyList<Citation> citations =

@@ -2,6 +2,12 @@ import type { ReactElement } from "react";
 import { useCopilotStore, type Artifact, type ChartArtifact, type TableArtifact } from "../state/useCopilotStore.ts";
 
 function TableView({ artifact }: { readonly artifact: TableArtifact }): ReactElement {
+  // Keys estables por contenido/posición (no el índice del map): celda por su columna, fila por su nº.
+  const rows = artifact.rows.map((cells, rowIndex) => ({
+    key: `row-${rowIndex}`,
+    cells: cells.map((value, cellIndex) => ({ key: artifact.columns[cellIndex] ?? `col-${cellIndex}`, value })),
+  }));
+
   return (
     <section className="rounded-xl border border-night-line bg-night-3">
       <p className="border-b border-night-line px-4 py-2.5 font-medium text-night-ink">{artifact.title}</p>
@@ -20,10 +26,10 @@ function TableView({ artifact }: { readonly artifact: TableArtifact }): ReactEle
             </tr>
           </thead>
           <tbody>
-            {artifact.rows.map((row, rowIndex) => (
-              <tr key={rowIndex} className="border-b border-night-line/60">
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-3 py-1.5 text-night-soft">{cell}</td>
+            {rows.map((row) => (
+              <tr key={row.key} className="border-b border-night-line/60">
+                {row.cells.map((cell) => (
+                  <td key={cell.key} className="px-3 py-1.5 text-night-soft">{cell.value}</td>
                 ))}
               </tr>
             ))}
@@ -45,7 +51,8 @@ function ChartView({ artifact }: { readonly artifact: ChartArtifact }): ReactEle
     );
   }
 
-  const points = artifact.rows.slice(0, 20).map((row) => ({
+  const points = artifact.rows.slice(0, 20).map((row, index) => ({
+    key: `pt-${index}`,
     label: row[xIndex] ?? "",
     value: Number.parseFloat((row[yIndex] ?? "").replace(",", ".")) || 0,
   }));
@@ -82,7 +89,7 @@ function ChartView({ artifact }: { readonly artifact: ChartArtifact }): ReactEle
           ) : (
             points.map((point, index) => (
               <rect
-                key={index}
+                key={point.key}
                 x={pad + step * index + step * 0.15}
                 y={yOf(point.value)}
                 width={step * 0.7}
@@ -94,7 +101,7 @@ function ChartView({ artifact }: { readonly artifact: ChartArtifact }): ReactEle
 
           {points.map((point, index) => (
             <text
-              key={index}
+              key={point.key}
               x={pad + step * index + step / 2}
               y={height - 12}
               textAnchor="middle"

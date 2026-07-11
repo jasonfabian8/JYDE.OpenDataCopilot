@@ -47,7 +47,7 @@ interface SettingsState {
   readonly clearSelection: () => void;
   /** Ingiere las categorías seleccionadas. */
   readonly ingestSelected: () => Promise<void>;
-  /** Ingiere todo el catálogo (sin filtro de categoría). */
+  /** Ingiere el catálogo completo (sin filtro de categoría). */
   readonly ingestAll: () => Promise<void>;
   /** Reconstruye el índice de búsqueda. */
   readonly rebuildIndex: () => Promise<void>;
@@ -73,9 +73,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   openSettings: (): void => {
     set({ open: true });
     if (get().categories.length === 0) {
-      void get().loadCategories();
+      get().loadCategories();
     }
-    void get().refreshCount();
+    get().refreshCount();
   },
 
   closeSettings: (): void => set({ open: false }),

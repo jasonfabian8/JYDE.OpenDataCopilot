@@ -70,7 +70,7 @@ export function Composer({ variant }: { readonly variant: "centered" | "docked" 
 
   function submit(): void {
     if (canSend) {
-      void send();
+      send();
     }
   }
 

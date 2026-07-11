@@ -41,15 +41,45 @@ export function SettingsModal(): ReactElement | null {
 
   const running: boolean = phase === "running";
 
+  /** Lista de categorías: estado de carga, vacío, o el listado seleccionable (evita ternario anidado). */
+  function renderCategoryList(): ReactElement {
+    if (loadingCategories) {
+      return <p className="px-3 py-3 text-sm text-night-muted">Cargando categorías…</p>;
+    }
+    if (categories.length === 0) {
+      return <p className="px-3 py-3 text-sm text-night-muted">No hay categorías (¿backend arriba?).</p>;
+    }
+    return (
+      <ul className="divide-y divide-night-line">
+        {categories.map((category) => (
+          <li key={category.name}>
+            <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm transition hover:bg-night-3/60">
+              <input
+                type="checkbox"
+                checked={selected.has(category.name)}
+                onChange={(): void => toggleCategory(category.name)}
+                className="h-4 w-4 accent-sky"
+              />
+              <span className="flex-1 text-night-ink">{category.name}</span>
+              <span className="font-mono text-xs tabular-nums text-night-muted">
+                {category.count.toLocaleString("es-CO")}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button type="button" aria-label="Cerrar" onClick={closeSettings} className="absolute inset-0 bg-black/60" />
 
-      <div
-        role="dialog"
+      <dialog
+        open
         aria-modal="true"
         aria-label="Configuración"
-        className="relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-night-line bg-night-2 shadow-2xl"
+        className="relative z-10 m-0 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-night-line bg-night-2 p-0 text-night-ink shadow-2xl"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-night-line px-5 py-4">
           <h2 className="font-display text-xl font-medium text-night-ink">Configuración</h2>
@@ -74,7 +104,7 @@ export function SettingsModal(): ReactElement | null {
             </div>
             <button
               type="button"
-              onClick={(): void => { void refreshCount(); }}
+              onClick={(): void => { refreshCount(); }}
               className="font-mono text-xs uppercase tracking-[0.15em] text-sky hover:underline"
             >
               Refrescar
@@ -91,7 +121,7 @@ export function SettingsModal(): ReactElement | null {
 
             <button
               type="button"
-              onClick={(): void => { void ingestAll(); }}
+              onClick={(): void => { ingestAll(); }}
               disabled={running}
               className="w-full rounded-lg bg-sky px-4 py-2.5 font-medium text-night transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -110,35 +140,12 @@ export function SettingsModal(): ReactElement | null {
             </div>
 
             <div className="max-h-56 overflow-y-auto rounded-lg border border-night-line">
-              {loadingCategories ? (
-                <p className="px-3 py-3 text-sm text-night-muted">Cargando categorías…</p>
-              ) : categories.length === 0 ? (
-                <p className="px-3 py-3 text-sm text-night-muted">No hay categorías (¿backend arriba?).</p>
-              ) : (
-                <ul className="divide-y divide-night-line">
-                  {categories.map((category) => (
-                    <li key={category.name}>
-                      <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm transition hover:bg-night-3/60">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(category.name)}
-                          onChange={(): void => toggleCategory(category.name)}
-                          className="h-4 w-4 accent-sky"
-                        />
-                        <span className="flex-1 text-night-ink">{category.name}</span>
-                        <span className="font-mono text-xs tabular-nums text-night-muted">
-                          {category.count.toLocaleString("es-CO")}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {renderCategoryList()}
             </div>
 
             <button
               type="button"
-              onClick={(): void => { void ingestSelected(); }}
+              onClick={(): void => { ingestSelected(); }}
               disabled={running || selected.size === 0}
               className="w-full rounded-lg border border-night-line bg-night-3 px-4 py-2.5 font-medium text-night-ink transition hover:border-sky/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -154,7 +161,7 @@ export function SettingsModal(): ReactElement | null {
             </p>
             <button
               type="button"
-              onClick={(): void => { void rebuildIndex(); }}
+              onClick={(): void => { rebuildIndex(); }}
               disabled={running}
               className="w-full rounded-lg border border-night-line px-4 py-2.5 font-medium text-night-ink transition hover:border-sky/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -163,19 +170,18 @@ export function SettingsModal(): ReactElement | null {
           </section>
 
           {message !== null && (
-            <p
-              role="status"
-              className={`rounded-lg border px-4 py-3 text-sm ${
+            <output
+              className={`block rounded-lg border px-4 py-3 text-sm ${
                 phase === "error"
                   ? "border-amber/40 bg-amber/10 text-night-ink"
                   : "border-sky/40 bg-sky/10 text-night-ink"
               }`}
             >
               {message}
-            </p>
+            </output>
           )}
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

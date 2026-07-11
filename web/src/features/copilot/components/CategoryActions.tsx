@@ -38,7 +38,7 @@ export function CategoryActions({
               key={category.name}
               type="button"
               disabled={busy}
-              onClick={(): void => { void loadCategoryAndRetry(category.name, query); }}
+              onClick={(): void => { loadCategoryAndRetry(category.name, query); }}
               className="inline-flex items-center gap-2 rounded-full border border-night-line bg-night-3 px-3 py-1.5 text-sm text-night-ink transition hover:border-sky/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loadingCategory === category.name ? (

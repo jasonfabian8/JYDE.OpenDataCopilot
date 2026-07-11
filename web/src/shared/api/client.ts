@@ -28,7 +28,7 @@ export interface CatalogCategory {
 
 /** Opciones para acotar una ingesta del catálogo. */
 export interface IngestOptions {
-  /** Categorías a incluir; vacío/omitido = todo el catálogo. */
+  /** Categorías a incluir; vacío/omitido = el catálogo completo. */
   readonly categories?: ReadonlyArray<string>;
   /** Máximo de datasets a ingerir; omitido = sin límite. */
   readonly limit?: number;
@@ -49,7 +49,7 @@ async function request<TResponse>(path: string, init?: RequestInit): Promise<TRe
 
 /** Operaciones del catálogo. */
 export const catalogApi = {
-  /** Ingiere el catálogo desde la fuente, acotado por categorías y/o límite (vacío = todo). */
+  /** Ingiere el catálogo desde la fuente, acotado por categorías y/o límite (vacío = el catálogo completo). */
   ingest: (options: IngestOptions = {}): Promise<IngestResult> =>
     request<IngestResult>("/catalog/ingest", {
       method: "POST",
@@ -126,6 +126,11 @@ export type ChatEvent =
   | { readonly kind: "conversation"; readonly conversationId: string }
   | { readonly kind: "done" };
 
+/** Lee una propiedad de texto del payload SSE, o cadena vacía si no es string. */
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 function parseSseFrame(frame: string): ChatEvent | null {
   let eventName = "";
   let data = "";
@@ -144,17 +149,17 @@ function parseSseFrame(frame: string): ChatEvent | null {
   const payload: Record<string, unknown> = data.length > 0 ? JSON.parse(data) : {};
   switch (eventName) {
     case "agent":
-      return { kind: "agent", agent: typeof payload.agent === "string" ? payload.agent : "" };
+      return { kind: "agent", agent: asString(payload.agent) };
     case "sources":
       return { kind: "sources", sources: (payload.sources as ReadonlyArray<ChatSource>) ?? [] };
     case "categories":
       return {
         kind: "categories",
-        query: typeof payload.query === "string" ? payload.query : "",
+        query: asString(payload.query),
         categories: (payload.categories as ReadonlyArray<ChatCategory>) ?? [],
       };
     case "objective":
-      return { kind: "objective", objective: typeof payload.objective === "string" ? payload.objective : "" };
+      return { kind: "objective", objective: asString(payload.objective) };
     case "table":
       return { kind: "table", table: (payload.table as ChatTable) ?? { title: "", columns: [], rows: [] } };
     case "chart":
@@ -162,9 +167,9 @@ function parseSseFrame(frame: string): ChatEvent | null {
     case "audit":
       return { kind: "audit", interactions: (payload.interactions as ReadonlyArray<ChatInteraction>) ?? [] };
     case "token":
-      return { kind: "token", text: typeof payload.text === "string" ? payload.text : "" };
+      return { kind: "token", text: asString(payload.text) };
     case "conversation":
-      return { kind: "conversation", conversationId: typeof payload.conversationId === "string" ? payload.conversationId : "" };
+      return { kind: "conversation", conversationId: asString(payload.conversationId) };
     case "done":
       return { kind: "done" };
     default:

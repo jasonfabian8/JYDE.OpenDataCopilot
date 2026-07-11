@@ -46,12 +46,9 @@ internal static class DatasetCandidates
         }
 
         // 2) Mejores candidatos por búsqueda semántica (sin repetir los ya fijados).
-        foreach (DatasetSearchHit hit in hits)
+        foreach (DatasetSearchHit hit in hits.Where(hit => seen.Add(hit.Id)))
         {
-            if (seen.Add(hit.Id))
-            {
-                orderedIds.Add(hit.Id);
-            }
+            orderedIds.Add(hit.Id);
         }
 
         List<Dataset> datasets = [];

@@ -133,24 +133,12 @@ public sealed class FiguresAgent : IConversationAgent
         Dataset dataset = ChooseDataset(datasets, reply.DatasetId);
         (DataQueryResult? data, string? queryError) = await ExecuteAsync(dataset.Id.Value, reply.Soql, cancellationToken);
 
-        if (data is not null)
+        foreach (ConversationEvent artifact in EmitData(dataset, data, reply.Chart))
         {
-            yield return ConversationEvent.ForSources(
-                [new Citation(dataset.Id.Value, dataset.Name, dataset.SourceUrl?.ToString(), 1.0)]);
-            yield return ConversationEvent.ForTable(new TableArtifact(dataset.Name, data.Columns, data.Rows));
-
-            ChartArtifact? chart = BuildChart(dataset.Name, reply.Chart, data.Columns);
-            if (chart is not null)
-            {
-                yield return ConversationEvent.ForChart(chart);
-            }
+            yield return artifact;
         }
 
-        string answer = data is null
-            ? $"No pude ejecutar la consulta sobre «{dataset.Name}» ({queryError}). SoQL intentado: {reply.Soql}. Verifica que las columnas existan o reformula."
-            : string.IsNullOrWhiteSpace(reply.Explicacion) ? "Aquí están los datos solicitados." : reply.Explicacion;
-
-        foreach (ConversationEvent chunk in EmitText(answer))
+        foreach (ConversationEvent chunk in EmitText(BuildAnswer(data, dataset, reply, queryError)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             yield return chunk;
@@ -162,6 +150,46 @@ public sealed class FiguresAgent : IConversationAgent
         }
 
         yield return ConversationEvent.Completed();
+    }
+
+    /// <summary>Emite las fuentes, la tabla y (si es válido) el gráfico cuando la consulta devolvió datos.</summary>
+    /// <param name="dataset">Dataset consultado (para citarlo y titular la tabla).</param>
+    /// <param name="data">Resultado de la consulta; <c>null</c> si falló (no emite nada).</param>
+    /// <param name="chart">Especificación de gráfico propuesta por el LLM (puede ser inválida).</param>
+    private static IEnumerable<ConversationEvent> EmitData(Dataset dataset, DataQueryResult? data, FiguresChart? chart)
+    {
+        if (data is null)
+        {
+            yield break;
+        }
+
+        yield return ConversationEvent.ForSources(
+            [new Citation(dataset.Id.Value, dataset.Name, dataset.SourceUrl?.ToString(), 1.0)]);
+        yield return ConversationEvent.ForTable(new TableArtifact(dataset.Name, data.Columns, data.Rows));
+
+        ChartArtifact? built = BuildChart(dataset.Name, chart, data.Columns);
+        if (built is not null)
+        {
+            yield return ConversationEvent.ForChart(built);
+        }
+    }
+
+    /// <summary>
+    /// Texto de cierre del turno: un error honesto (sin inventar cifras) si la consulta falló, o la
+    /// explicación del LLM (o un texto por defecto si vino vacía) cuando sí hubo datos.
+    /// </summary>
+    /// <param name="data">Resultado de la consulta; <c>null</c> si falló.</param>
+    /// <param name="dataset">Dataset consultado (para nombrarlo en el mensaje de error).</param>
+    /// <param name="reply">Respuesta del LLM (SoQL y explicación).</param>
+    /// <param name="queryError">Motivo del fallo de la consulta, si lo hubo.</param>
+    private static string BuildAnswer(DataQueryResult? data, Dataset dataset, FiguresReply reply, string? queryError)
+    {
+        if (data is null)
+        {
+            return $"No pude ejecutar la consulta sobre «{dataset.Name}» ({queryError}). SoQL intentado: {reply.Soql}. Verifica que las columnas existan o reformula.";
+        }
+
+        return string.IsNullOrWhiteSpace(reply.Explicacion) ? "Aquí están los datos solicitados." : reply.Explicacion;
     }
 
     private async Task<(DataQueryResult? Data, string? Error)> ExecuteAsync(string datasetId, string soql, CancellationToken cancellationToken)
