@@ -32,11 +32,14 @@ public sealed class ChatController : ControllerBase
         string question = request.Question.Trim();
         int topK = request.Top is int value && value > 0 ? value : CopilotOrchestrator.DefaultTopK;
         string? conversationId = string.IsNullOrWhiteSpace(request.ConversationId) ? null : request.ConversationId;
+        string? objective = string.IsNullOrWhiteSpace(request.Objective) ? null : request.Objective;
+        string? context = string.IsNullOrWhiteSpace(request.Context) ? null : request.Context;
 
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
 
-        await foreach (ConversationEvent conversationEvent in _orchestrator.AskAsync(question, topK, conversationId, cancellationToken))
+        await foreach (ConversationEvent conversationEvent in
+            _orchestrator.AskAsync(question, topK, conversationId, objective, request.SelectedDatasets, context, cancellationToken))
         {
             await WriteEventAsync(conversationEvent, cancellationToken);
         }
@@ -52,6 +55,10 @@ public sealed class ChatController : ControllerBase
             ConversationEventKind.Agent => new { agent = conversationEvent.Agent },
             ConversationEventKind.Sources => new { sources = conversationEvent.Sources },
             ConversationEventKind.Categories => new { query = conversationEvent.Query, categories = conversationEvent.Categories },
+            ConversationEventKind.Objective => new { objective = conversationEvent.Objective },
+            ConversationEventKind.Audit => new { interactions = conversationEvent.Interactions },
+            ConversationEventKind.Table => new { table = conversationEvent.Table },
+            ConversationEventKind.Chart => new { chart = conversationEvent.Chart },
             ConversationEventKind.Token => new { text = conversationEvent.Token },
             ConversationEventKind.Conversation => new { conversationId = conversationEvent.ConversationId },
             _ => new { },
