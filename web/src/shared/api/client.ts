@@ -47,6 +47,18 @@ async function request<TResponse>(path: string, init?: RequestInit): Promise<TRe
   return (await response.json()) as TResponse;
 }
 
+/** Igual que `request` pero para respuestas sin cuerpo (204 No Content): no intenta parsear JSON. */
+async function requestVoid(path: string, init?: RequestInit): Promise<void> {
+  const response: Response = await fetch(`${baseUrl}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...init,
+  });
+
+  if (!response.ok) {
+    throw new Error(`La API respondió ${response.status} (${response.statusText}) en ${path}.`);
+  }
+}
+
 /** Operaciones del catálogo. */
 export const catalogApi = {
   /** Ingiere el catálogo desde la fuente, acotado por categorías y/o límite (vacío = el catálogo completo). */
@@ -67,6 +79,76 @@ export const catalogApi = {
   /** Lista las categorías temáticas del catálogo (con su conteo) para acotar la ingesta. */
   categories: (): Promise<ReadonlyArray<CatalogCategory>> =>
     request<ReadonlyArray<CatalogCategory>>("/catalog/categories"),
+};
+
+/** Resumen de una conversación persistida (para la barra lateral). */
+export interface ConversationSummaryDto {
+  readonly id: string;
+  readonly title: string;
+  readonly updatedAtUtc: string;
+}
+
+/** Mensaje persistido de una conversación. */
+export interface ConversationMessageDto {
+  readonly id: string;
+  readonly role: string;
+  readonly content: string;
+  readonly agent?: string | null;
+  readonly sources?: ReadonlyArray<ChatSource> | null;
+}
+
+/** Artefacto persistido (tabla o gráfico). */
+export interface ConversationArtifactDto {
+  readonly id: string;
+  readonly kind: string;
+  readonly title: string;
+  readonly columns: ReadonlyArray<string>;
+  readonly rows: ReadonlyArray<ReadonlyArray<string>>;
+  readonly type?: string | null;
+  readonly xColumn?: string | null;
+  readonly yColumn?: string | null;
+}
+
+/** Entrada de auditoría persistida. */
+export interface ConversationAuditEntryDto {
+  readonly id: string;
+  readonly userMessage: string;
+  readonly interactions: ReadonlyArray<ChatInteraction>;
+}
+
+/** Conversación completa persistida (transcripción + memoria + artefactos + auditoría). */
+export interface ConversationRecordDto {
+  readonly id: string;
+  readonly title: string;
+  readonly threadId: string | null;
+  readonly messages: ReadonlyArray<ConversationMessageDto>;
+  readonly objective: string;
+  readonly selectedDatasets: ReadonlyArray<{ readonly id: string; readonly name: string }>;
+  readonly artifacts: ReadonlyArray<ConversationArtifactDto>;
+  readonly auditLog: ReadonlyArray<ConversationAuditEntryDto>;
+  readonly updatedAtUtc?: string;
+}
+
+/** Operaciones de persistencia de conversaciones (guardado manual). */
+export const conversationsApi = {
+  /** Lista los resúmenes de las conversaciones guardadas (más reciente primero). */
+  list: (): Promise<ReadonlyArray<ConversationSummaryDto>> =>
+    request<ReadonlyArray<ConversationSummaryDto>>("/conversations"),
+
+  /** Recupera una conversación completa por su id. */
+  get: (id: string): Promise<ConversationRecordDto> =>
+    request<ConversationRecordDto>(`/conversations/${encodeURIComponent(id)}`),
+
+  /** Guarda (inserta o reemplaza) una conversación. */
+  save: (conversation: ConversationRecordDto): Promise<void> =>
+    requestVoid(`/conversations/${encodeURIComponent(conversation.id)}`, {
+      method: "PUT",
+      body: JSON.stringify(conversation),
+    }),
+
+  /** Elimina una conversación completa de la BD. */
+  remove: (id: string): Promise<void> =>
+    requestVoid(`/conversations/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
 
 /** Operaciones de búsqueda. */

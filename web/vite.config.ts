@@ -5,8 +5,9 @@ import tailwindcss from "@tailwindcss/vite";
 // Configuración de Vite (ver ADR-0008 y ADR-0009). Dos entradas (multi-página): la landing
 // pública (`index.html`, informativa) y la app del Copilot (`copilot/index.html`, servida en
 // `/copilot/`). Comparten el design system y el cliente de la API; no hay dependencias nuevas.
-// El proxy evita CORS en desarrollo: el front llama rutas relativas (/catalog, /search, /chat) y
-// Vite las reenvía a la API. Debe coincidir con el puerto de la API (ver Api/Properties/launchSettings.json).
+// El proxy evita CORS en desarrollo: el front llama rutas relativas (/catalog, /search, /chat,
+// /conversations) y Vite las reenvía a la API. Debe coincidir con el puerto de la API (ver
+// Api/Properties/launchSettings.json).
 const apiTarget: string = "http://localhost:5244";
 
 export default defineConfig({
@@ -25,6 +26,7 @@ export default defineConfig({
       "/catalog": { target: apiTarget, changeOrigin: true },
       "/search": { target: apiTarget, changeOrigin: true },
       "/chat": { target: apiTarget, changeOrigin: true },
+      "/conversations": { target: apiTarget, changeOrigin: true },
     },
   },
   // Testing del frontend con Vitest (ver ADR-0016). La cobertura sale en LCOV para SonarCloud.

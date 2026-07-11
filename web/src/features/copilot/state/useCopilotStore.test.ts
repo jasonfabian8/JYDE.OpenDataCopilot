@@ -1,15 +1,17 @@
 import { useCopilotStore, initialCopilotState } from "./useCopilotStore.ts";
-import { chatApi, catalogApi, searchApi } from "../../../shared/api/client.ts";
+import { chatApi, catalogApi, searchApi, conversationsApi } from "../../../shared/api/client.ts";
 
 vi.mock("../../../shared/api/client.ts", () => ({
   chatApi: { stream: vi.fn() },
   catalogApi: { ingest: vi.fn(), count: vi.fn(), categories: vi.fn() },
   searchApi: { buildIndex: vi.fn() },
+  conversationsApi: { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() },
 }));
 
 const chat = vi.mocked(chatApi);
 const catalog = vi.mocked(catalogApi);
 const search = vi.mocked(searchApi);
+const conversations = vi.mocked(conversationsApi);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -336,5 +338,108 @@ describe("useCopilotStore", () => {
     useCopilotStore.getState().togglePanel("memory");
     useCopilotStore.getState().closePanel();
     expect(useCopilotStore.getState().rightPanel).toBe("none");
+  });
+
+  it("loadConversations agrega placeholders persistidos (sin hidratar)", async () => {
+    conversations.list.mockResolvedValue([
+      { id: "srv-1", title: "Guardada", updatedAtUtc: "2026-07-11T10:00:00Z" },
+    ]);
+
+    await useCopilotStore.getState().loadConversations();
+
+    const conv = useCopilotStore.getState().conversations.find((c) => c.id === "srv-1");
+    expect(conv).toBeDefined();
+    expect(conv?.persisted).toBe(true);
+    expect(conv?.hydrated).toBe(false);
+    expect(conv?.messages).toHaveLength(0);
+  });
+
+  it("selectConversation hidrata un placeholder desde la BD y carga el espejo", async () => {
+    conversations.list.mockResolvedValue([{ id: "srv-1", title: "Guardada", updatedAtUtc: "2026-07-11T10:00:00Z" }]);
+    await useCopilotStore.getState().loadConversations();
+    conversations.get.mockResolvedValue({
+      id: "srv-1",
+      title: "Guardada",
+      threadId: "t1",
+      messages: [{ id: "m1", role: "user", content: "hola" }],
+      objective: "obj",
+      selectedDatasets: [{ id: "d1", name: "D" }],
+      artifacts: [],
+      auditLog: [],
+    });
+
+    await useCopilotStore.getState().selectConversation("srv-1");
+
+    expect(conversations.get).toHaveBeenCalledWith("srv-1");
+    const conv = useCopilotStore.getState().conversations.find((c) => c.id === "srv-1");
+    expect(conv?.hydrated).toBe(true);
+    expect(conv?.messages).toHaveLength(1);
+    expect(useCopilotStore.getState().activeId).toBe("srv-1");
+    expect(useCopilotStore.getState().objective).toBe("obj");
+    expect(useCopilotStore.getState().selectedDatasets).toHaveLength(1);
+  });
+
+  it("saveConversation guarda la conversación y la marca persistida", async () => {
+    conversations.save.mockResolvedValue(undefined);
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "token", text: "ok" };
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({ input: "hola" });
+    await useCopilotStore.getState().send();
+    const id = useCopilotStore.getState().activeId;
+
+    await useCopilotStore.getState().saveConversation(id);
+
+    expect(conversations.save).toHaveBeenCalledTimes(1);
+    const record = conversations.save.mock.calls[0][0];
+    expect(record.id).toBe(id);
+    expect(record.messages.length).toBeGreaterThan(0);
+    expect(useCopilotStore.getState().conversations.find((c) => c.id === id)?.persisted).toBe(true);
+  });
+
+  it("saveConversation NO guarda un placeholder sin hidratar", async () => {
+    conversations.list.mockResolvedValue([{ id: "srv-1", title: "Guardada", updatedAtUtc: "2026-07-11T10:00:00Z" }]);
+    await useCopilotStore.getState().loadConversations();
+
+    await useCopilotStore.getState().saveConversation("srv-1");
+
+    expect(conversations.save).not.toHaveBeenCalled();
+  });
+
+  it("deleteConversation de la única activa la borra y deja un hilo nuevo", async () => {
+    conversations.remove.mockResolvedValue(undefined);
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({ input: "hola" });
+    await useCopilotStore.getState().send();
+    const id = useCopilotStore.getState().activeId;
+
+    await useCopilotStore.getState().deleteConversation(id);
+
+    expect(conversations.remove).toHaveBeenCalledWith(id);
+    expect(useCopilotStore.getState().conversations.some((c) => c.id === id)).toBe(false);
+    expect(useCopilotStore.getState().conversations).toHaveLength(1);
+  });
+
+  it("deleteConversation de la activa (con otras) activa la siguiente", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "token", text: "x" };
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({ input: "A" });
+    await useCopilotStore.getState().send();
+    const idA = useCopilotStore.getState().activeId;
+    useCopilotStore.getState().newConversation();
+    useCopilotStore.setState({ input: "B" });
+    await useCopilotStore.getState().send();
+    const idB = useCopilotStore.getState().activeId;
+    conversations.remove.mockResolvedValue(undefined);
+
+    await useCopilotStore.getState().deleteConversation(idB);
+
+    expect(useCopilotStore.getState().conversations.some((c) => c.id === idB)).toBe(false);
+    expect(useCopilotStore.getState().activeId).toBe(idA);
   });
 });

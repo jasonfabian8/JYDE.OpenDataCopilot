@@ -98,4 +98,67 @@ public sealed class ConversationRecordsTests
         (chart with { Type = "line" }).ShouldNotBe(chart);
         table.ToString().ShouldContain("Mortalidad");
     }
+
+    [Fact]
+    public void ConversationRecord_ConContenidoCompleto_ExponeSusCampos()
+    {
+        ConversationMessageRecord user = new("m1", "user", "hola");
+        ConversationMessageRecord assistant = new(
+            "m2", "assistant", "respuesta", "figures-agent",
+            [new Citation("xpi4-vt35", "Morbilidad", "https://x", 0.9)]);
+        ConversationArtifactRecord chart = new(
+            "a1", "chart", "Cifras", ["x", "y"], [["a", "1"]], Type: "bar", XColumn: "x", YColumn: "y");
+        ConversationAuditEntryRecord audit = new(
+            "e1", "hola", [new AgentInteraction("router-agent", "req", "res")]);
+        DateTimeOffset updated = new(2026, 7, 11, 9, 0, 0, TimeSpan.Zero);
+
+        ConversationRecord record = new(
+            "c1", "Título", "thread-1",
+            [user, assistant], "objetivo",
+            [new SelectedDataset("xpi4-vt35", "Morbilidad")],
+            [chart], [audit], updated);
+
+        record.Id.ShouldBe("c1");
+        record.Title.ShouldBe("Título");
+        record.ThreadId.ShouldBe("thread-1");
+        record.Objective.ShouldBe("objetivo");
+        record.UpdatedAtUtc.ShouldBe(updated);
+        record.SelectedDatasets.ShouldHaveSingleItem().Name.ShouldBe("Morbilidad");
+
+        record.Messages.Count.ShouldBe(2);
+        record.Messages[0].Id.ShouldBe("m1");
+        record.Messages[0].Role.ShouldBe("user");
+        record.Messages[0].Content.ShouldBe("hola");
+        record.Messages[0].Agent.ShouldBeNull();
+        record.Messages[0].Sources.ShouldBeNull();
+        record.Messages[1].Agent.ShouldBe("figures-agent");
+        record.Messages[1].Sources.ShouldNotBeNull().ShouldHaveSingleItem().DatasetId.ShouldBe("xpi4-vt35");
+
+        ConversationArtifactRecord artifact = record.Artifacts.ShouldHaveSingleItem();
+        artifact.Id.ShouldBe("a1");
+        artifact.Kind.ShouldBe("chart");
+        artifact.Title.ShouldBe("Cifras");
+        artifact.Columns.ShouldBe(["x", "y"]);
+        artifact.Rows.ShouldHaveSingleItem().ShouldBe(["a", "1"]);
+        artifact.Type.ShouldBe("bar");
+        artifact.XColumn.ShouldBe("x");
+        artifact.YColumn.ShouldBe("y");
+
+        ConversationAuditEntryRecord entry = record.AuditLog.ShouldHaveSingleItem();
+        entry.Id.ShouldBe("e1");
+        entry.UserMessage.ShouldBe("hola");
+        entry.Interactions.ShouldHaveSingleItem().Agent.ShouldBe("router-agent");
+    }
+
+    [Fact]
+    public void ConversationSummary_ExponeSusCampos()
+    {
+        DateTimeOffset updated = new(2026, 7, 11, 9, 0, 0, TimeSpan.Zero);
+
+        ConversationSummary summary = new("c1", "Título", updated);
+
+        summary.Id.ShouldBe("c1");
+        summary.Title.ShouldBe("Título");
+        summary.UpdatedAtUtc.ShouldBe(updated);
+    }
 }

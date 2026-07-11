@@ -2,11 +2,13 @@ import { create } from "zustand";
 import {
   catalogApi,
   chatApi,
+  conversationsApi,
   searchApi,
   type ChatCategory,
   type ChatEvent,
   type ChatSource,
   type ChatTable,
+  type ConversationRecordDto,
 } from "../../../shared/api/client.ts";
 
 /** Artefacto de tabla en el panel de artefactos. */
@@ -90,6 +92,10 @@ export interface Conversation {
   readonly artifacts: ReadonlyArray<Artifact>;
   /** Bitácora de auditoría (interacciones crudas) de ESTA conversación. */
   readonly auditLog: ReadonlyArray<AuditEntry>;
+  /** Si existe guardada en la BD (para mostrarla en la lista y saber si se puede eliminar). */
+  readonly persisted?: boolean;
+  /** Si su contenido completo ya se cargó localmente (los resúmenes de la BD arrancan sin hidratar). */
+  readonly hydrated?: boolean;
 }
 
 /** Estado del flujo de chat. */
@@ -155,6 +161,12 @@ interface CopilotState {
   readonly togglePanel: (panel: RightPanel) => void;
   /** Cierra el panel derecho. */
   readonly closePanel: () => void;
+  /** Carga desde la BD los resúmenes de conversaciones guardadas (al abrir la app). */
+  readonly loadConversations: () => Promise<void>;
+  /** Guarda (manual) una conversación completa en la BD. */
+  readonly saveConversation: (id: string) => Promise<void>;
+  /** Elimina una conversación de la BD y de la sesión (con su memoria/artefactos/auditoría). */
+  readonly deleteConversation: (id: string) => Promise<void>;
 }
 
 function newConversationRecord(): Conversation {
@@ -229,6 +241,90 @@ function describe(error: unknown): string {
 /** Agentes que trabajan sobre un dataset concreto: al citarlo, se auto-fija en la memoria. */
 const ANALYSIS_AGENTS: ReadonlySet<string> = new Set(["dataset-analyst-agent", "figures-agent"]);
 
+/** Serializa una conversación de la sesión al DTO de persistencia (para guardar en la BD). */
+function toRecordDto(conversation: Conversation): ConversationRecordDto {
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    threadId: conversation.threadId,
+    objective: conversation.objective,
+    selectedDatasets: conversation.selectedDatasets.map((dataset) => ({ id: dataset.id, name: dataset.name })),
+    messages: conversation.messages.map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      agent: message.agent ?? null,
+      sources: message.sources ?? null,
+    })),
+    artifacts: conversation.artifacts.map((artifact) =>
+      artifact.kind === "chart"
+        ? {
+            id: artifact.id,
+            kind: "chart",
+            title: artifact.title,
+            columns: artifact.columns,
+            rows: artifact.rows,
+            type: artifact.type,
+            xColumn: artifact.xColumn,
+            yColumn: artifact.yColumn,
+          }
+        : { id: artifact.id, kind: "table", title: artifact.title, columns: artifact.columns, rows: artifact.rows },
+    ),
+    auditLog: conversation.auditLog.map((entry) => ({
+      id: entry.id,
+      userMessage: entry.userMessage,
+      interactions: entry.interactions.map((interaction) => ({
+        agent: interaction.agent,
+        request: interaction.request,
+        response: interaction.response,
+      })),
+    })),
+  };
+}
+
+/** Reconstruye una conversación de la sesión (hidratada) desde el DTO persistido. */
+function fromRecordDto(dto: ConversationRecordDto): Conversation {
+  return {
+    id: dto.id,
+    title: dto.title,
+    threadId: dto.threadId ?? null,
+    objective: dto.objective ?? "",
+    selectedDatasets: dto.selectedDatasets.map((dataset) => ({ id: dataset.id, name: dataset.name })),
+    messages: dto.messages.map((message) => ({
+      id: message.id,
+      role: message.role === "assistant" ? "assistant" : "user",
+      content: message.content,
+      agent: message.agent ?? undefined,
+      sources: message.sources ?? undefined,
+    })),
+    artifacts: dto.artifacts.map((artifact) =>
+      artifact.kind === "chart"
+        ? {
+            id: artifact.id,
+            kind: "chart",
+            title: artifact.title,
+            type: artifact.type ?? "bar",
+            xColumn: artifact.xColumn ?? "",
+            yColumn: artifact.yColumn ?? "",
+            columns: artifact.columns,
+            rows: artifact.rows,
+          }
+        : { id: artifact.id, kind: "table", title: artifact.title, columns: artifact.columns, rows: artifact.rows },
+    ),
+    auditLog: dto.auditLog.map((entry) => ({
+      id: entry.id,
+      userMessage: entry.userMessage,
+      interactions: entry.interactions.map((interaction) => ({
+        agent: interaction.agent,
+        request: interaction.request,
+        response: interaction.response,
+      })),
+    })),
+    persisted: true,
+    hydrated: true,
+  };
+}
+
 export const useCopilotStore = create<CopilotState>((set, get) => {
   const patchConversation = (id: string, updater: (conversation: Conversation) => Conversation): void =>
     set({ conversations: get().conversations.map((c) => (c.id === id ? updater(c) : c)) });
@@ -265,11 +361,21 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
       });
     },
 
-    selectConversation: (id: string): void => {
+    selectConversation: async (id: string): Promise<void> => {
       if (get().status === "streaming") {
         return;
       }
-      const target: Conversation | undefined = get().conversations.find((c) => c.id === id);
+      let target: Conversation | undefined = get().conversations.find((c) => c.id === id);
+      // Resumen persistido aún sin hidratar: traemos su contenido completo de la BD.
+      if (target !== undefined && target.persisted === true && target.hydrated === false) {
+        try {
+          const hydrated: Conversation = fromRecordDto(await conversationsApi.get(id));
+          set({ conversations: get().conversations.map((c) => (c.id === id ? hydrated : c)) });
+          target = hydrated;
+        } catch (error: unknown) {
+          set({ error: describe(error) });
+        }
+      }
       set({
         ...initialCopilotState(),
         conversations: get().conversations,
@@ -457,5 +563,73 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
     togglePanel: (panel: RightPanel): void => set({ rightPanel: get().rightPanel === panel ? "none" : panel }),
 
     closePanel: (): void => set({ rightPanel: "none" }),
+
+    loadConversations: async (): Promise<void> => {
+      try {
+        const summaries = await conversationsApi.list();
+        const existing: Set<string> = new Set(get().conversations.map((c) => c.id));
+        // Placeholders (sin hidratar) para las guardadas que aún no estén en la sesión.
+        const placeholders: Conversation[] = summaries
+          .filter((summary) => !existing.has(summary.id))
+          .map((summary) => ({
+            id: summary.id,
+            title: summary.title,
+            messages: [],
+            threadId: null,
+            objective: "",
+            selectedDatasets: [],
+            artifacts: [],
+            auditLog: [],
+            persisted: true,
+            hydrated: false,
+          }));
+        if (placeholders.length > 0) {
+          set({ conversations: [...get().conversations, ...placeholders] });
+        }
+      } catch (error: unknown) {
+        set({ error: describe(error) });
+      }
+    },
+
+    saveConversation: async (id: string): Promise<void> => {
+      const conversation: Conversation | undefined = get().conversations.find((c) => c.id === id);
+      // Solo se guardan conversaciones hidratadas (con su contenido); nunca un placeholder vacío.
+      if (conversation === undefined || conversation.hydrated === false) {
+        return;
+      }
+      try {
+        await conversationsApi.save(toRecordDto(conversation));
+        patchConversation(id, (c) => ({ ...c, persisted: true }));
+      } catch (error: unknown) {
+        set({ error: describe(error) });
+      }
+    },
+
+    deleteConversation: async (id: string): Promise<void> => {
+      try {
+        await conversationsApi.remove(id);
+      } catch (error: unknown) {
+        set({ error: describe(error) });
+        return;
+      }
+
+      const wasActive: boolean = id === get().activeId;
+      const remaining: ReadonlyArray<Conversation> = get().conversations.filter((c) => c.id !== id);
+      if (remaining.length === 0) {
+        const fresh: Conversation = newConversationRecord();
+        set({
+          ...initialCopilotState(),
+          conversations: [fresh],
+          activeId: fresh.id,
+          loadedCategories: get().loadedCategories,
+        });
+        return;
+      }
+
+      set({ conversations: remaining });
+      if (wasActive) {
+        await get().selectConversation(remaining[0].id);
+      }
+    },
   };
 });

@@ -214,16 +214,22 @@ sequenceDiagram
 // appsettings.json (Api). Local por defecto = gratis; producción se sobreescribe por entorno.
 {
   "Providers": {
-    "SearchIndex": "PgVector",   // PgVector | AzureAISearch | Qdrant
-    "DatasetCache": "DuckDb",    // DuckDb | Postgres | MongoAtlas
+    "SearchIndex": "PgVector",       // PgVector | AzureAISearch | Qdrant
+    "DatasetCache": "DuckDb",        // DuckDb | Postgres | MongoAtlas
     "Chat": "Foundry",
-    "Embeddings": "Foundry"
+    "Embeddings": "Foundry",
+    "ConversationStore": "InMemory"  // InMemory (dev, $0) | Mongo (Atlas) — ver ADR-0017
   }
 }
 ```
 
 El *composition root* (`Program.cs`) registra el adaptador según el valor de configuración. Añadir
 un proveedor nuevo = nuevo adaptador + una rama de registro, **sin tocar dominio ni aplicación**.
+
+El puerto **`IConversationStore`** (persistencia de conversaciones: transcripción + memoria +
+artefactos + auditoría) sigue este patrón con adaptadores `InMemoryConversationStore` (dev, $0) y
+`MongoConversationStore` (Atlas); el guardado es manual y se expone en `ConversationsController`
+(`GET/PUT/DELETE /conversations`). Ver [ADR-0017](../adr/0017-persistencia-conversaciones.md).
 
 ---
 
