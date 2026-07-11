@@ -115,10 +115,21 @@ builder.Services.AddSingleton<IConversationAgent>(provider => new CategoryRecomm
     provider.GetRequiredService<IChatCompletion>(),
     categoryRelevanceThreshold));
 
-// Agente recomendador de datasets: umbral de relevancia RECALCULADA por el LLM (configurable).
+// Umbral de relevancia RECALCULADA por el LLM (configurable), compartido por analista y recomendador.
 double relevanceThreshold =
     builder.Configuration.GetValue<double?>("Search:RelevanceThreshold")
     ?? DatasetRecommenderAgent.DefaultRelevanceThreshold;
+
+// Agente analista: describe columnas y evalúa cruces/correlaciones (metadatos del catálogo). Se
+// registra antes del recomendador para que la reserva por reglas capture "columnas/cruzar/correlación".
+builder.Services.AddSingleton<IConversationAgent>(provider => new DatasetAnalystAgent(
+    provider.GetRequiredService<IEmbeddingGenerator>(),
+    provider.GetRequiredService<IDatasetSearchIndex>(),
+    provider.GetRequiredService<ICatalogRepository>(),
+    provider.GetRequiredService<IChatCompletion>(),
+    relevanceThreshold));
+
+// Agente recomendador de datasets: recomienda entre candidatos del índice.
 builder.Services.AddSingleton<IConversationAgent>(provider => new DatasetRecommenderAgent(
     provider.GetRequiredService<IEmbeddingGenerator>(),
     provider.GetRequiredService<IDatasetSearchIndex>(),

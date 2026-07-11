@@ -56,6 +56,12 @@ Con ≥ 2 agentes se materializan piezas previstas en el seguimiento:
   devuelve JSON con relevancia por categoría + una **consulta sugerida** a reintentar. Emite un evento
   SSE nuevo **`categories`** que el frontend muestra como **botones**: al clic se ingiere esa categoría,
   se reconstruye el índice y se **re-pregunta** la consulta.
+- **`DatasetAnalystAgent`**: entiende los datasets desde sus **metadatos (columnas)** ya almacenados.
+  Resuelve el/los dataset(s) (búsqueda semántica), trae su esquema completo del repositorio
+  (`ICatalogRepository.GetByIdAsync`) y pide al LLM (a) **describir columnas** o (b) evaluar la
+  **factibilidad de cruce/correlación** entre dos datasets por columnas comunes (municipio, año,
+  código DANE…). No consulta datos reales — eso corresponde al futuro **agente de cifras (SoQL)**.
+  Reutiliza el re-ranking por JSON (cita solo los datasets usados).
 - **Re-ranking por JSON en los agentes de recomendación**: el LLM devuelve `{respuesta, ...}` con la
   **relevancia recalculada** por cada candidato; solo se cita/recomienda lo que supera el umbral
   (`Search:RelevanceThreshold`, `Conversation:CategoryRelevanceThreshold`). Evita citar candidatos
