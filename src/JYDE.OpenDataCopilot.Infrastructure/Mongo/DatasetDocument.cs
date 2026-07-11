@@ -49,10 +49,11 @@ internal sealed class DatasetDocument
     public Dataset ToDomain() => new(
         new DatasetId(Id),
         Name,
-        Description,
-        Category,
-        Tags,
-        [.. Columns.Select(column => column.ToDomain())],
-        SourceUrl is null ? null : new Uri(SourceUrl),
-        UpdatedAt);
+        new DatasetMetadata(
+            Description,
+            Category,
+            Tags,
+            [.. Columns.Select(column => column.ToDomain())],
+            SourceUrl is null ? null : new Uri(SourceUrl),
+            UpdatedAt));
 }

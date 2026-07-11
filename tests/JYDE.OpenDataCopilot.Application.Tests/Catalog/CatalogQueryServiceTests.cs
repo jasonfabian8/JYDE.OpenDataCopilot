@@ -14,11 +14,12 @@ public sealed class CatalogQueryServiceTests
         Dataset dataset = new(
             new DatasetId("ddau-8cy9"),
             "Accidentalidad",
-            description: "Accidentes",
-            category: "Movilidad",
-            tags: ["movilidad"],
-            columns: [new DatasetColumn("Municipio", "municipio", "text", "Nombre")],
-            sourceUrl: new Uri("https://www.datos.gov.co/d/ddau-8cy9"));
+            new DatasetMetadata(
+                description: "Accidentes",
+                category: "Movilidad",
+                tags: ["movilidad"],
+                columns: [new DatasetColumn("Municipio", "municipio", "text", "Nombre")],
+                sourceUrl: new Uri("https://www.datos.gov.co/d/ddau-8cy9")));
         await repository.SaveAsync([dataset], TestContext.Current.CancellationToken);
         CatalogQueryService service = new(repository);
 

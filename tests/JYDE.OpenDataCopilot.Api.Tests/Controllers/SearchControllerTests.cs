@@ -17,10 +17,10 @@ public sealed class SearchControllerTests
         InMemoryCatalogRepository repository = new();
         await repository.SaveAsync(
         [
-            new Dataset(new DatasetId("aaaa-0001"), "Accidentalidad vial", category: "Movilidad",
-                tags: ["accidentes", "vias", "transito"]),
-            new Dataset(new DatasetId("aaaa-0002"), "Cobertura de vacunación", category: "Salud",
-                tags: ["vacunacion", "salud"]),
+            new Dataset(new DatasetId("aaaa-0001"), "Accidentalidad vial",
+                new DatasetMetadata(category: "Movilidad", tags: ["accidentes", "vias", "transito"])),
+            new Dataset(new DatasetId("aaaa-0002"), "Cobertura de vacunación",
+                new DatasetMetadata(category: "Salud", tags: ["vacunacion", "salud"])),
         ]);
 
         LocalHashingEmbeddingGenerator embeddings = new();

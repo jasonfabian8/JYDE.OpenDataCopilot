@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -40,48 +41,37 @@ public sealed class SocrataCatalogClient : ICatalogSource
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<Dataset> FetchAsync(
-        CatalogFilter filter,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<Dataset> FetchAsync(CatalogFilter filter, CancellationToken cancellationToken = default)
     {
+        // Validación temprana (eager); la iteración perezosa vive en el método iterador privado.
         ArgumentNullException.ThrowIfNull(filter);
+        return FetchPagedAsync(filter, cancellationToken);
+    }
 
+    /// <summary>Itera el catálogo paginando la API de Socrata hasta agotar resultados o el límite.</summary>
+    private async IAsyncEnumerable<Dataset> FetchPagedAsync(
+        CatalogFilter filter,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        int? limit = filter.Limit;
         int emitted = 0;
         int offset = 0;
 
-        while (true)
+        while (limit is null || emitted < limit)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            int remaining = filter.Limit.HasValue ? filter.Limit.Value - emitted : int.MaxValue;
-            if (remaining <= 0)
-            {
-                yield break;
-            }
-
-            int pageLimit = Math.Min(_options.PageSize, remaining);
-            Uri url = BuildRequestUri(filter, offset, pageLimit);
-
-            SocrataCatalogResponse? response =
-                await _httpClient.GetFromJsonAsync<SocrataCatalogResponse>(url, JsonOptions, cancellationToken);
-
+            int pageLimit = limit is null ? _options.PageSize : Math.Min(_options.PageSize, limit.Value - emitted);
+            SocrataCatalogResponse? response = await FetchPageAsync(filter, offset, pageLimit, cancellationToken);
             if (response is null || response.Results.Count == 0)
             {
                 yield break;
             }
 
-            foreach (SocrataResult result in response.Results)
+            foreach (Dataset dataset in MapPage(response.Results))
             {
-                Dataset? dataset = MapToDataset(result);
-                if (dataset is null)
-                {
-                    continue;
-                }
-
                 yield return dataset;
-                emitted++;
-
-                if (filter.Limit.HasValue && emitted >= filter.Limit.Value)
+                if (++emitted == limit)
                 {
                     yield break;
                 }
@@ -91,6 +81,30 @@ public sealed class SocrataCatalogClient : ICatalogSource
             if (offset >= response.ResultSetSize)
             {
                 yield break;
+            }
+        }
+    }
+
+    /// <summary>Solicita una página del catálogo a Socrata.</summary>
+    private Task<SocrataCatalogResponse?> FetchPageAsync(
+        CatalogFilter filter,
+        int offset,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        Uri url = BuildRequestUri(filter, offset, limit);
+        return _httpClient.GetFromJsonAsync<SocrataCatalogResponse>(url, JsonOptions, cancellationToken);
+    }
+
+    /// <summary>Mapea los resultados de una página al dominio, descartando los inválidos.</summary>
+    private static IEnumerable<Dataset> MapPage(IReadOnlyList<SocrataResult> results)
+    {
+        foreach (SocrataResult result in results)
+        {
+            Dataset? dataset = MapToDataset(result);
+            if (dataset is not null)
+            {
+                yield return dataset;
             }
         }
     }
@@ -138,12 +152,13 @@ public sealed class SocrataCatalogClient : ICatalogSource
         return new Dataset(
             id,
             resource.Name,
-            description: resource.Description,
-            category: result.Classification?.DomainCategory,
-            tags: result.Classification?.DomainTags,
-            columns: MapColumns(resource),
-            sourceUrl: TryCreateUri(result.Permalink ?? result.Link),
-            updatedAt: TryParseDate(resource.UpdatedAt));
+            new DatasetMetadata(
+                description: resource.Description,
+                category: result.Classification?.DomainCategory,
+                tags: result.Classification?.DomainTags,
+                columns: MapColumns(resource),
+                sourceUrl: TryCreateUri(result.Permalink ?? result.Link),
+                updatedAt: TryParseDate(resource.UpdatedAt)));
     }
 
     private static DatasetId? TryCreateId(string value)
@@ -158,7 +173,7 @@ public sealed class SocrataCatalogClient : ICatalogSource
         }
     }
 
-    private static IReadOnlyList<DatasetColumn> MapColumns(SocrataResource resource)
+    private static List<DatasetColumn> MapColumns(SocrataResource resource)
     {
         List<string>? names = resource.ColumnsName;
         if (names is null || names.Count == 0)
@@ -186,5 +201,7 @@ public sealed class SocrataCatalogClient : ICatalogSource
         => Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) ? uri : null;
 
     private static DateTimeOffset? TryParseDate(string? value)
-        => DateTimeOffset.TryParse(value, out DateTimeOffset parsed) ? parsed : null;
+        => DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTimeOffset parsed)
+            ? parsed
+            : null;
 }

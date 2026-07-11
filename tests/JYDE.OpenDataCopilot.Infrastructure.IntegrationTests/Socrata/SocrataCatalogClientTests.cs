@@ -212,6 +212,46 @@ public sealed class SocrataCatalogClientTests
     }
 
     [Fact]
+    public async Task FetchAsync_ConRespuestaNula_NoEmiteNada()
+    {
+        // La API responde con un cuerpo JSON nulo: el deserializado es null y no debe romper.
+        SocrataCatalogClient client = CreateClient(new FakeHttpMessageHandler("null"));
+
+        List<Dataset> datasets = await CollectAsync(client, CatalogFilter.All);
+
+        datasets.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task FetchAsync_ConArreglosDeColumnasMasCortos_UsaValoresPorDefecto()
+    {
+        string body = """
+        {
+          "results": [
+            {
+              "resource": {
+                "id": "aaaa-0011",
+                "name": "Columnas desparejas",
+                "columns_name": ["Municipio", "Edad"],
+                "columns_field_name": ["municipio"]
+              }
+            }
+          ],
+          "resultSetSize": 1
+        }
+        """;
+        SocrataCatalogClient client = CreateClient(new FakeHttpMessageHandler(body));
+
+        List<Dataset> datasets = await CollectAsync(client, CatalogFilter.All);
+
+        IReadOnlyList<DatasetColumn> columns = datasets[0].Columns;
+        columns.Count.ShouldBe(2);
+        columns[0].FieldName.ShouldBe("municipio");
+        columns[1].FieldName.ShouldBe("Edad"); // sin field_name propio, cae al nombre
+        columns[1].DataType.ShouldBe("unknown");
+    }
+
+    [Fact]
     public void Constructor_ConArgumentosInvalidos_Lanza()
     {
         HttpClient httpClient = new(new FakeHttpMessageHandler());
