@@ -1,6 +1,8 @@
 using JYDE.OpenDataCopilot.Application.Catalog;
+using JYDE.OpenDataCopilot.Application.Conversation;
 using JYDE.OpenDataCopilot.Application.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Catalog;
+using JYDE.OpenDataCopilot.Infrastructure.Chat;
 using JYDE.OpenDataCopilot.Infrastructure.Embeddings;
 using JYDE.OpenDataCopilot.Infrastructure.Foundry;
 using JYDE.OpenDataCopilot.Infrastructure.Mongo;
@@ -32,11 +34,20 @@ builder.Services.AddSingleton(mongoOptions);
 string catalogRepository = builder.Configuration["Providers:CatalogRepository"] ?? "InMemory";
 string searchIndex = builder.Configuration["Providers:SearchIndex"] ?? "InMemory";
 string embeddingsProvider = builder.Configuration["Providers:Embeddings"] ?? "Local";
+string chatProvider = builder.Configuration["Providers:Chat"] ?? "Fake";
 
 // Cliente Mongo ÚNICO compartido por los adaptadores Mongo (el cliente gestiona el pool).
 if (IsMongo(catalogRepository) || IsMongo(searchIndex))
 {
     builder.Services.AddSingleton<MongoContext>();
+}
+
+// Opciones de Foundry (compartidas por chat y embeddings); se registran una sola vez.
+if (IsFoundry(embeddingsProvider) || IsFoundry(chatProvider))
+{
+    FoundryOptions foundryOptions =
+        builder.Configuration.GetSection(FoundryOptions.SectionName).Get<FoundryOptions>() ?? new FoundryOptions();
+    builder.Services.AddSingleton(foundryOptions);
 }
 
 // Catálogo: fuente = Socrata.
@@ -62,9 +73,6 @@ builder.Services.AddTransient<CatalogQueryService>();
 // Search: embeddings = Local (por defecto, $0) o Foundry (Azure AI Foundry).
 if (IsFoundry(embeddingsProvider))
 {
-    FoundryOptions foundryOptions =
-        builder.Configuration.GetSection(FoundryOptions.SectionName).Get<FoundryOptions>() ?? new FoundryOptions();
-    builder.Services.AddSingleton(foundryOptions);
     builder.Services.AddHttpClient<IEmbeddingGenerator, FoundryEmbeddingGenerator>();
 }
 else
@@ -84,6 +92,20 @@ else
 
 builder.Services.AddTransient<IndexCatalogService>();
 builder.Services.AddTransient<SearchDatasetsService>();
+
+// Conversación (Copilot multiagente, ver ADR-0015). LLM: Fake ($0) o Foundry (agentes publicados).
+if (IsFoundry(chatProvider))
+{
+    builder.Services.AddHttpClient<IChatCompletion, FoundryChatCompletion>();
+}
+else
+{
+    builder.Services.AddSingleton<IChatCompletion, FakeChatCompletion>();
+}
+
+builder.Services.AddSingleton<IConversationAgent, DatasetRecommenderAgent>();
+builder.Services.AddSingleton<IAgentRouter, DefaultAgentRouter>();
+builder.Services.AddTransient<CopilotOrchestrator>();
 
 WebApplication app = builder.Build();
 

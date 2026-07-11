@@ -85,9 +85,9 @@ public sealed class MongoDatasetSearchIndex : IDatasetSearchIndex
         });
 
         BsonDocument[] pipeline = [vectorSearch, project];
-        List<BsonDocument> documents = await _collection
-            .Aggregate<BsonDocument>(pipeline, cancellationToken: cancellationToken)
-            .ToListAsync(cancellationToken);
+        using IAsyncCursor<BsonDocument> cursor =
+            await _collection.AggregateAsync<BsonDocument>(pipeline, cancellationToken: cancellationToken);
+        List<BsonDocument> documents = await cursor.ToListAsync(cancellationToken);
 
         return [.. documents.Select(ToHit)];
     }

@@ -19,7 +19,7 @@ export function OperationsPanel(): ReactElement {
   const rebuildIndex = useOperationsStore((state) => state.rebuildIndex);
 
   useEffect((): void => {
-    void refreshCount();
+    refreshCount();
   }, [refreshCount]);
 
   const busy: boolean = catalogPhase === "running" || indexPhase === "running";
@@ -45,7 +45,7 @@ export function OperationsPanel(): ReactElement {
             </p>
             <button
               type="button"
-              onClick={(): void => void refreshCount()}
+              onClick={(): void => { refreshCount(); }}
               className="mt-4 font-mono text-xs uppercase tracking-[0.15em] text-cobalt hover:underline"
             >
               Refrescar
@@ -59,7 +59,7 @@ export function OperationsPanel(): ReactElement {
               Ingiere metadatos de datasets desde la API de Socrata.
             </p>
             <label className="mt-4 block font-mono text-xs uppercase tracking-[0.15em] text-muted">
-              Límite
+              <span>Límite</span>
               <input
                 type="number"
                 min={1}
@@ -72,7 +72,7 @@ export function OperationsPanel(): ReactElement {
             <button
               type="button"
               disabled={busy}
-              onClick={(): void => void updateCatalog()}
+              onClick={(): void => { updateCatalog(); }}
               className="mt-4 w-full rounded-lg bg-cobalt px-4 py-2.5 font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {phaseLabel(catalogPhase, "Actualizar catálogo", "Actualizando…")}
@@ -88,7 +88,7 @@ export function OperationsPanel(): ReactElement {
             <button
               type="button"
               disabled={busy}
-              onClick={(): void => void rebuildIndex()}
+              onClick={(): void => { rebuildIndex(); }}
               className="mt-4 w-full rounded-lg border border-ink px-4 py-2.5 font-medium text-ink transition hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:opacity-50"
             >
               {phaseLabel(indexPhase, "Reconstruir índice", "Indexando…")}
@@ -97,16 +97,15 @@ export function OperationsPanel(): ReactElement {
         </div>
 
         {message !== null && (
-          <p
-            role="status"
-            className={`mt-8 rounded-lg border px-4 py-3 text-sm ${
+          <output
+            className={`mt-8 block rounded-lg border px-4 py-3 text-sm ${
               catalogPhase === "error" || indexPhase === "error"
                 ? "border-amber/40 bg-amber/10 text-ink"
                 : "border-verde/40 bg-verde-soft text-ink"
             }`}
           >
             {message}
-          </p>
+          </output>
         )}
       </div>
     </section>

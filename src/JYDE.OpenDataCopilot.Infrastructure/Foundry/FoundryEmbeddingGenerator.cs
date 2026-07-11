@@ -33,11 +33,22 @@ public sealed class FoundryEmbeddingGenerator : IEmbeddingGenerator
     /// <inheritdoc />
     public async Task<IReadOnlyList<float>> GenerateAsync(string text, CancellationToken cancellationToken = default)
     {
-        Uri url = new(
-            $"{_options.Endpoint.TrimEnd('/')}/openai/deployments/{_options.EmbeddingDeployment}/embeddings" +
-            $"?api-version={_options.ApiVersion}");
+        // Los embeddings se exponen a nivel de RECURSO (no del proyecto): se deriva la raíz quitando
+        // el sufijo "/api/projects/...". Se usa la API v1 (OpenAI-compatible).
+        string resourceBase = _options.Endpoint;
+        int projectIndex = resourceBase.IndexOf("/api/projects", StringComparison.OrdinalIgnoreCase);
+        if (projectIndex >= 0)
+        {
+            resourceBase = resourceBase[..projectIndex];
+        }
 
-        var payload = new { input = text, dimensions = _options.Dimensions };
+        Uri url = new($"{resourceBase.TrimEnd('/')}/openai/v1/embeddings");
+        var payload = new
+        {
+            model = _options.Embeddings.Deployment,
+            input = text,
+            dimensions = _options.Embeddings.Dimensions,
+        };
 
         HttpResponseMessage response = await _httpClient.PostAsJsonAsync(url, payload, cancellationToken);
         response.EnsureSuccessStatusCode();

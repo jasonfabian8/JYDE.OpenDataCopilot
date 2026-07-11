@@ -1,6 +1,5 @@
 using JYDE.OpenDataCopilot.Infrastructure.Foundry;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Foundry;
 
@@ -11,9 +10,12 @@ public sealed class FoundryEmbeddingGeneratorTests
     {
         Endpoint = "https://recurso.openai.azure.com",
         ApiKey = apiKey,
-        EmbeddingDeployment = "text-embedding-3-small",
-        ApiVersion = "2024-02-01",
-        Dimensions = 3,
+        Embeddings = new FoundryEmbeddingSettings
+        {
+            Deployment = "text-embedding-3-small",
+            ApiVersion = "2024-02-01",
+            Dimensions = 3,
+        },
     };
 
     private static FoundryEmbeddingGenerator Create(FakeFoundryHandler handler, FoundryOptions options) =>
@@ -30,8 +32,28 @@ public sealed class FoundryEmbeddingGeneratorTests
         embedding.Count.ShouldBe(3);
         embedding[0].ShouldBe(0.1f, 1e-5f);
         handler.LastApiKey.ShouldBe("secret-key");
-        handler.LastUri!.AbsolutePath.ShouldBe("/openai/deployments/text-embedding-3-small/embeddings");
-        handler.LastUri!.Query.ShouldContain("api-version=2024-02-01");
+        handler.LastUri!.AbsolutePath.ShouldBe("/openai/v1/embeddings");
+        handler.LastBody.ShouldNotBeNull();
+        handler.LastBody.ShouldContain("text-embedding-3-small");
+    }
+
+    [Fact]
+    public async Task GenerateAsync_DerivaLaRaizDelRecurso_DesdeEndpointDeProyecto()
+    {
+        FakeFoundryHandler handler = new("""{"data":[{"embedding":[0.1]}]}""");
+        FoundryOptions options = new()
+        {
+            Endpoint = "https://recurso.services.ai.azure.com/api/projects/proyecto",
+            ApiKey = "k",
+            Embeddings = new FoundryEmbeddingSettings { Deployment = "text-embedding-3-small", Dimensions = 1 },
+        };
+        FoundryEmbeddingGenerator generator = Create(handler, options);
+
+        await generator.GenerateAsync("x", TestContext.Current.CancellationToken);
+
+        handler.LastUri!.Host.ShouldBe("recurso.services.ai.azure.com");
+        handler.LastUri!.AbsolutePath.ShouldBe("/openai/v1/embeddings");
+        handler.LastUri!.ToString().ShouldNotContain("/api/projects");
     }
 
     [Fact]

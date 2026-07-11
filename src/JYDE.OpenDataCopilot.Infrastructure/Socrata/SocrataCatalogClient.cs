@@ -24,12 +24,13 @@ public sealed class SocrataCatalogClient : ICatalogSource
     /// <param name="httpClient">Cliente HTTP (inyectado).</param>
     /// <param name="options">Opciones del adaptador.</param>
     /// <exception cref="ArgumentNullException">Si algún argumento es nulo.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Si <see cref="SocrataCatalogOptions.PageSize"/> es menor que 1.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Si <see cref="SocrataCatalogOptions.PageSize"/> o <see cref="SocrataCatalogOptions.MaxResults"/> son menores que 1.</exception>
     public SocrataCatalogClient(HttpClient httpClient, SocrataCatalogOptions options)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfLessThan(options.PageSize, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxResults, 1);
 
         _httpClient = httpClient;
         _options = options;
@@ -53,7 +54,10 @@ public sealed class SocrataCatalogClient : ICatalogSource
         CatalogFilter filter,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        int? limit = filter.Limit;
+        // Acota el límite pedido a una cota de servidor (MaxResults): el bucle no debe quedar
+        // gobernado por datos del usuario (CWE-834). Sin límite explícito, la paginación termina
+        // cuando la fuente se agota (offset >= ResultSetSize).
+        int? limit = filter.Limit is int requested ? Math.Min(requested, _options.MaxResults) : null;
         int emitted = 0;
         int offset = 0;
 

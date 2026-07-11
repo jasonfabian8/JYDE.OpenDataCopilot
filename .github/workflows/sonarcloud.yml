@@ -18,6 +18,10 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Cache SonarQube Cloud packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -37,14 +41,38 @@ jobs:
         run: |
           New-Item -Path ${{ runner.temp }}\scanner -ItemType Directory
           dotnet tool update dotnet-sonarscanner --tool-path ${{ runner.temp }}\scanner
-      - name: Build and analyze
+      - name: Begin SonarCloud analysis
         env:
-          # El SonarScanner for .NET lee SONAR_TOKEN del entorno automáticamente.
-          # Pasarlo por `env:` (y NO expandirlo dentro del `run:`) cumple S7636 y evita el
-          # token vacío por sintaxis de shell: en PowerShell las env vars son $env:VAR, no $VAR.
+          # El SonarScanner for .NET lee SONAR_TOKEN del entorno automáticamente. Pasarlo por `env:`
+          # (y NO expandirlo dentro del `run:`) cumple S7636; en PowerShell las env vars son $env:VAR.
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
+        # Cobertura: OpenCover (.NET, plugin C#) + LCOV (frontend, plugin JS/TS). sonar.coverage.exclusions
+        # espeja lo que cada herramienta no cubre (Program.cs, adaptadores Mongo [ExcludeFromCodeCoverage],
+        # y los archivos de test / bootstrap del frontend) para que el % coincida con la realidad.
         run: |
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"jasonfabian8_JYDE.OpenDataCopilot" /o:"jasonfabian8"
-          dotnet build
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner end
+          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"jasonfabian8_JYDE.OpenDataCopilot" /o:"jasonfabian8" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.javascript.lcov.reportPaths="web/coverage/lcov.info" /d:sonar.coverage.exclusions="**/Program.cs,**/Mongo/MongoContext.cs,**/Mongo/MongoCatalogRepository.cs,**/Mongo/MongoDatasetSearchIndex.cs,**/Mongo/DatasetVectorDocument.cs,**/*.test.ts,**/*.test.tsx,**/src/test/**,web/src/main.tsx"
+      - name: Build and test with coverage
+        shell: powershell
+        # `dotnet test` compila (lo que dispara el análisis de Sonar) y recolecta cobertura OpenCover
+        # por proyecto (tests/*/coverage.opencover.xml). Respeta el umbral >=95% de Directory.Build.props.
+        run: dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+      - name: Frontend tests with coverage
+        shell: powershell
+        working-directory: web
+        # Vitest (ver ADR-0016) corre las pruebas del frontend y emite cobertura LCOV en web/coverage.
+        run: |
+          npm ci
+          npm run test:coverage
+      - name: Normalize frontend coverage paths
+        shell: powershell
+        # Vitest emite rutas SF relativas a web/ (p. ej. src\app\App.tsx); Sonar analiza desde la raíz,
+        # así que las prefijamos con web/ y normalizamos separadores para que casen con los fuentes.
+        run: |
+          (Get-Content web/coverage/lcov.info) -replace '^SF:', 'SF:web/' -replace '\\', '/' | Set-Content web/coverage/lcov.info -Encoding ascii
+      - name: End SonarCloud analysis
+        if: always()  # sube el análisis y la cobertura aunque el umbral de cobertura falle
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: powershell
+        run: ${{ runner.temp }}\scanner\dotnet-sonarscanner end

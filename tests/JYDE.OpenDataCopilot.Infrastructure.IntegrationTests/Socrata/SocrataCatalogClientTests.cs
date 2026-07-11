@@ -252,6 +252,20 @@ public sealed class SocrataCatalogClientTests
     }
 
     [Fact]
+    public async Task FetchAsync_ConLimiteMayorAlMaximo_SeAcotaAlMaximo()
+    {
+        // Defensa CWE-834: aunque el usuario pida más, el bucle no supera MaxResults.
+        string page = ResponseJson(100,
+            ResultJson("aaaa-0001", "Uno"), ResultJson("aaaa-0002", "Dos"), ResultJson("aaaa-0003", "Tres"));
+        HttpClient httpClient = new(new FakeHttpMessageHandler(page));
+        SocrataCatalogClient client = new(httpClient, new SocrataCatalogOptions { PageSize = 10, MaxResults = 2 });
+
+        List<Dataset> datasets = await CollectAsync(client, new CatalogFilter(Limit: 1000));
+
+        datasets.Count.ShouldBe(2);
+    }
+
+    [Fact]
     public void Constructor_ConArgumentosInvalidos_Lanza()
     {
         HttpClient httpClient = new(new FakeHttpMessageHandler());
@@ -260,5 +274,7 @@ public sealed class SocrataCatalogClientTests
         Should.Throw<ArgumentNullException>(() => new SocrataCatalogClient(httpClient, null!));
         Should.Throw<ArgumentOutOfRangeException>(
             () => new SocrataCatalogClient(httpClient, new SocrataCatalogOptions { PageSize = 0 }));
+        Should.Throw<ArgumentOutOfRangeException>(
+            () => new SocrataCatalogClient(httpClient, new SocrataCatalogOptions { MaxResults = 0 }));
     }
 }

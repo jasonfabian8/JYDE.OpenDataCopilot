@@ -1,6 +1,5 @@
 using JYDE.OpenDataCopilot.Infrastructure.Embeddings;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Infrastructure.IntegrationTests.Embeddings;
 

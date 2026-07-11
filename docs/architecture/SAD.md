@@ -47,6 +47,7 @@
 | [0012](../adr/0012-persistencia-mongodb-atlas.md) | Persistencia con MongoDB Atlas (driver y almacén del catálogo) |
 | [0013](../adr/0013-embeddings-foundry-y-local-dev.md) | Embeddings: Foundry (objetivo) + adaptador local para dev |
 | [0014](../adr/0014-atlas-vector-search.md) | Índice de búsqueda con MongoDB Atlas Vector Search |
+| [0015](../adr/0015-arquitectura-multiagente.md) | Conversación: arquitectura multiagente (Copilot + agentes) |
 
 > Prácticas de código (Clean Code, SOLID, convenciones): ver
 > [`coding-standards.md`](coding-standards.md).
@@ -92,7 +93,7 @@ Api ──► Infrastructure ──► Application ──► Domain
 |----------|-----------------|---------------------|-------------|
 | **Catalog** | Ingestar/almacenar metadatos del catálogo | `ICatalogSource`, `ICatalogRepository` | `SocrataCatalogClient`; `InMemory`/`Mongo` (repositorio) |
 | **Search** | Indexar y recuperar datasets (vector + keyword) | `IDatasetSearchIndex`, `IEmbeddingGenerator` | `InMemory`/`Mongo` (Atlas Vector Search) índice; `Local`/`Foundry` embeddings |
-| **Conversation** | Orquestar pregunta → respuesta citada | `IChatCompletion`, `IDataQuery`, `IConversationStore` | `FoundryChatCompletion`, `SocrataDataQuery` |
+| **Conversation** | Copilot multiagente: orquesta agentes → respuesta citada (SSE) | `IChatCompletion`, `IConversationAgent`, `IAgentRouter`, (`IDataQuery`, `IConversationStore`) | `Fake`/`Foundry` (chat); agentes: `DatasetRecommenderAgent` (+ cifras, …) |
 | **DataCache** | Cachear datasets seleccionados | `IDatasetCache` | `DuckDb`/`Postgres` (local), `MongoAtlas` (prod) |
 
 ---
@@ -289,7 +290,7 @@ web/
 - Componentes de presentación desacoplados de la obtención de datos (hooks de datos; la librería de data-fetching/cache está pendiente de concertar). Un componente/módulo por archivo.
 
 ### Calidad y pruebas
-- **TypeScript `strict`** (decidido). Linter/formatter y framework de pruebas: **pendientes por concertar** (candidatos: ESLint + Prettier, Vitest + React Testing Library), a registrar en SAD+ADR.
+- **TypeScript `strict`** (decidido). **Framework de pruebas: Vitest + React Testing Library** (decidido, [ADR-0016](../adr/0016-testing-frontend-vitest.md)); la cobertura sale en LCOV y se sube a SonarCloud junto con la del backend. Linter/formatter: **pendiente por concertar** (candidato: ESLint + Prettier), a registrar en SAD+ADR.
 - Pruebas centradas en la conducta del usuario; un componente/módulo por archivo.
 - **Accesibilidad** (roles/ARIA, navegación por teclado) y diseño responsivo como requisitos.
 

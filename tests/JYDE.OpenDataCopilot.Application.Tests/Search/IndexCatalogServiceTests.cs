@@ -2,7 +2,6 @@ using JYDE.OpenDataCopilot.Application.Search;
 using JYDE.OpenDataCopilot.Application.Tests.Catalog;
 using JYDE.OpenDataCopilot.Domain.Catalog;
 using Shouldly;
-using Xunit;
 
 namespace JYDE.OpenDataCopilot.Application.Tests.Search;
 
