@@ -4,6 +4,15 @@
     <ProjectReference Include="..\JYDE.OpenDataCopilot.Application\JYDE.OpenDataCopilot.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver" Version="3.9.0" />
+  </ItemGroup>
+
+  <!-- Permite a las pruebas verificar el mapeo de los modelos de persistencia internos. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="JYDE.OpenDataCopilot.Infrastructure.IntegrationTests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

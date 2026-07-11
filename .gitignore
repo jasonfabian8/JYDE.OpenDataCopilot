@@ -95,6 +95,7 @@ _ReSharper*/
 # ----------------------------------------------------------------------------
 appsettings.*.local.json
 appsettings.Development.local.json
+appsettings.Development.json
 secrets.json
 *.dev.json
 
