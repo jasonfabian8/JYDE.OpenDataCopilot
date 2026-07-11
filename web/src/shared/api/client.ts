@@ -91,11 +91,37 @@ export interface ChatCategory {
   readonly relevance: number;
 }
 
+/** Artefacto de tabla (datos tabulados) que muestra el panel de artefactos. */
+export interface ChatTable {
+  readonly title: string;
+  readonly columns: ReadonlyArray<string>;
+  readonly rows: ReadonlyArray<ReadonlyArray<string>>;
+}
+
+/** Artefacto de gráfico; el frontend lo dibuja a partir de la tabla del mismo turno. */
+export interface ChatChart {
+  readonly title: string;
+  readonly type: string;
+  readonly xColumn: string;
+  readonly yColumn: string;
+}
+
+/** Interacción cruda con un agente (auditoría): mensaje enviado y respuesta. */
+export interface ChatInteraction {
+  readonly agent: string;
+  readonly request: string;
+  readonly response: string;
+}
+
 /** Evento del flujo de chat (SSE). */
 export type ChatEvent =
   | { readonly kind: "agent"; readonly agent: string }
   | { readonly kind: "sources"; readonly sources: ReadonlyArray<ChatSource> }
   | { readonly kind: "categories"; readonly query: string; readonly categories: ReadonlyArray<ChatCategory> }
+  | { readonly kind: "objective"; readonly objective: string }
+  | { readonly kind: "table"; readonly table: ChatTable }
+  | { readonly kind: "chart"; readonly chart: ChatChart }
+  | { readonly kind: "audit"; readonly interactions: ReadonlyArray<ChatInteraction> }
   | { readonly kind: "token"; readonly text: string }
   | { readonly kind: "conversation"; readonly conversationId: string }
   | { readonly kind: "done" };
@@ -127,6 +153,14 @@ function parseSseFrame(frame: string): ChatEvent | null {
         query: typeof payload.query === "string" ? payload.query : "",
         categories: (payload.categories as ReadonlyArray<ChatCategory>) ?? [],
       };
+    case "objective":
+      return { kind: "objective", objective: typeof payload.objective === "string" ? payload.objective : "" };
+    case "table":
+      return { kind: "table", table: (payload.table as ChatTable) ?? { title: "", columns: [], rows: [] } };
+    case "chart":
+      return { kind: "chart", chart: (payload.chart as ChatChart) ?? { title: "", type: "bar", xColumn: "", yColumn: "" } };
+    case "audit":
+      return { kind: "audit", interactions: (payload.interactions as ReadonlyArray<ChatInteraction>) ?? [] };
     case "token":
       return { kind: "token", text: typeof payload.text === "string" ? payload.text : "" };
     case "conversation":
@@ -147,10 +181,22 @@ export const chatApi = {
     question: string,
     conversationId: string | null,
     signal: AbortSignal,
+    objective: string = "",
+    selectedDatasets: ReadonlyArray<string> = [],
+    context: string = "",
   ): AsyncGenerator<ChatEvent> {
     const body: Record<string, unknown> = { question };
     if (conversationId !== null) {
       body.conversationId = conversationId;
+    }
+    if (objective.length > 0) {
+      body.objective = objective;
+    }
+    if (selectedDatasets.length > 0) {
+      body.selectedDatasets = selectedDatasets;
+    }
+    if (context.length > 0) {
+      body.context = context;
     }
 
     const response: Response = await fetch(`${baseUrl}/chat`, {

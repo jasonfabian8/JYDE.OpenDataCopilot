@@ -103,3 +103,30 @@ export function CloseIcon({ className }: IconProps): ReactElement {
     </LineIcon>
   );
 }
+
+/** Marcador (memoria/objetivo de la conversación). */
+export function MemoryIcon({ className }: IconProps): ReactElement {
+  return (
+    <LineIcon className={className}>
+      <path d="M6 3h12v18l-6-4-6 4z" />
+    </LineIcon>
+  );
+}
+
+/** Barras (artefactos: tablas/gráficos). */
+export function ChartBarIcon({ className }: IconProps): ReactElement {
+  return (
+    <LineIcon className={className}>
+      <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
+    </LineIcon>
+  );
+}
+
+/** Portapapeles con lista (auditoría). */
+export function AuditIcon({ className }: IconProps): ReactElement {
+  return (
+    <LineIcon className={className}>
+      <path d="M9 4h6v3H9zM7 5H5v16h14V5h-2M8 11h8M8 15h8" />
+    </LineIcon>
+  );
+}

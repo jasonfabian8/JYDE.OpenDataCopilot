@@ -113,6 +113,45 @@ describe("chatApi.stream", () => {
     expect(events[2]).toEqual({ kind: "token", text: "hola" });
   });
 
+  it("parsea eventos table y chart", async () => {
+    const frames =
+      [
+        'event: table\ndata: {"table":{"title":"T","columns":["a"],"rows":[["1"]]}}',
+        'event: chart\ndata: {"chart":{"title":"T","type":"bar","xColumn":"a","yColumn":"a"}}',
+      ].join("\n\n") + "\n\n";
+    fetchMock.mockResolvedValue(sseResponse(frames));
+
+    const events: ChatEvent[] = [];
+    for await (const event of chatApi.stream("x", null, new AbortController().signal)) {
+      events.push(event);
+    }
+
+    expect(events.map((event) => event.kind)).toEqual(["table", "chart"]);
+  });
+
+  it("parsea el evento objective", async () => {
+    fetchMock.mockResolvedValue(sseResponse('event: objective\ndata: {"objective":"analizar mortalidad"}\n\n'));
+
+    const events: ChatEvent[] = [];
+    for await (const event of chatApi.stream("x", null, new AbortController().signal)) {
+      events.push(event);
+    }
+
+    expect(events).toEqual([{ kind: "objective", objective: "analizar mortalidad" }]);
+  });
+
+  it("incluye objetivo y datasets seleccionados en el body cuando se pasan", async () => {
+    fetchMock.mockResolvedValue(sseResponse("event: done\ndata: {}\n\n"));
+
+    const iterator = chatApi.stream("hola", null, new AbortController().signal, "mi objetivo", ["Dataset A"]);
+    for await (const _event of iterator) {
+      // consumir para disparar el fetch
+    }
+
+    const body: unknown = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toEqual({ question: "hola", objective: "mi objetivo", selectedDatasets: ["Dataset A"] });
+  });
+
   it("incluye conversationId en el body cuando hay hilo abierto", async () => {
     fetchMock.mockResolvedValue(sseResponse("event: done\ndata: {}\n\n"));
 

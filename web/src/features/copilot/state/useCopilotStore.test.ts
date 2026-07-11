@@ -64,7 +64,7 @@ describe("useCopilotStore", () => {
     useCopilotStore.setState({ input: "dos" });
     await useCopilotStore.getState().send();
 
-    expect(chat.stream).toHaveBeenCalledWith("dos", "resp_1", expect.any(AbortSignal));
+    expect(chat.stream).toHaveBeenCalledWith("dos", "resp_1", expect.any(AbortSignal), "", [], "ok");
   });
 
   it("nueva conversación crea un hilo vacío y lo activa", async () => {
@@ -150,7 +150,7 @@ describe("useCopilotStore", () => {
 
     expect(catalog.ingest).toHaveBeenCalledWith({ categories: ["Salud y Protección Social"] });
     expect(search.buildIndex).toHaveBeenCalled();
-    expect(chat.stream).toHaveBeenCalledWith("suicidio juvenil", null, expect.any(AbortSignal));
+    expect(chat.stream).toHaveBeenCalledWith("suicidio juvenil", null, expect.any(AbortSignal), "", [], "");
     expect(useCopilotStore.getState().loadingCategory).toBeNull();
     expect(useCopilotStore.getState().loadedCategories).toContain("Salud y Protección Social");
   });
@@ -162,5 +162,112 @@ describe("useCopilotStore", () => {
 
     expect(useCopilotStore.getState().status).toBe("error");
     expect(useCopilotStore.getState().loadingCategory).toBeNull();
+  });
+
+  it("aplica el evento objective y actualiza la memoria", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "objective", objective: "analizar la mortalidad y su relación con la deserción" };
+      yield { kind: "token", text: "ok" };
+      yield { kind: "done" };
+    });
+
+    useCopilotStore.setState({ input: "mortalidad" });
+    await useCopilotStore.getState().send();
+
+    expect(useCopilotStore.getState().objective).toBe("analizar la mortalidad y su relación con la deserción");
+  });
+
+  it("send envía el objetivo y los nombres de datasets seleccionados", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({
+      input: "hola",
+      objective: "mi objetivo",
+      selectedDatasets: [{ id: "a", name: "Dataset A" }],
+    });
+
+    await useCopilotStore.getState().send();
+
+    expect(chat.stream).toHaveBeenCalledWith("hola", null, expect.any(AbortSignal), "mi objetivo", ["Dataset A"], "");
+  });
+
+  it("pinDataset agrega sin duplicar y unpinDataset quita", () => {
+    useCopilotStore.getState().pinDataset({ id: "a", name: "A" });
+    useCopilotStore.getState().pinDataset({ id: "a", name: "A" });
+    useCopilotStore.getState().pinDataset({ id: "b", name: "B" });
+    expect(useCopilotStore.getState().selectedDatasets.map((d) => d.id)).toEqual(["a", "b"]);
+
+    useCopilotStore.getState().unpinDataset("a");
+    expect(useCopilotStore.getState().selectedDatasets.map((d) => d.id)).toEqual(["b"]);
+  });
+
+  it("setObjective y clearMemory editan la memoria", () => {
+    useCopilotStore.getState().setObjective("nuevo objetivo");
+    useCopilotStore.getState().pinDataset({ id: "a", name: "A" });
+
+    useCopilotStore.getState().clearMemory();
+
+    expect(useCopilotStore.getState().objective).toBe("");
+    expect(useCopilotStore.getState().selectedDatasets).toHaveLength(0);
+  });
+
+  it("aplica eventos table y chart y llena el panel de artefactos", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield { kind: "table", table: { title: "Mortalidad", columns: ["genero", "total"], rows: [["M", "1"], ["F", "2"]] } };
+      yield { kind: "chart", chart: { title: "Mortalidad", type: "bar", xColumn: "genero", yColumn: "total" } };
+      yield { kind: "token", text: "listo" };
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({ input: "cuántas muertes por género" });
+
+    await useCopilotStore.getState().send();
+
+    const artifacts = useCopilotStore.getState().artifacts;
+    expect(artifacts).toHaveLength(2);
+    expect(artifacts[0].kind).toBe("table");
+    const chart = artifacts[1];
+    expect(chart.kind).toBe("chart");
+    if (chart.kind === "chart") {
+      expect(chart.rows).toHaveLength(2); // el gráfico lleva los datos de la tabla del turno
+      expect(chart.xColumn).toBe("genero");
+    }
+    expect(useCopilotStore.getState().rightPanel).toBe("artifacts"); // el dock se abre en artefactos
+  });
+
+  it("aplica el evento audit y acumula la bitácora con el mensaje del usuario", async () => {
+    chat.stream.mockImplementation(async function* () {
+      yield {
+        kind: "audit",
+        interactions: [
+          { agent: "router-agent", request: "enrutar", response: "dataset-recommender-agent" },
+          { agent: "dataset-recommender-agent", request: "recomendar", response: "{...}" },
+        ],
+      };
+      yield { kind: "token", text: "listo" };
+      yield { kind: "done" };
+    });
+    useCopilotStore.setState({ input: "accidentalidad vial" });
+
+    await useCopilotStore.getState().send();
+
+    const auditLog = useCopilotStore.getState().auditLog;
+    expect(auditLog).toHaveLength(1);
+    expect(auditLog[0].userMessage).toBe("accidentalidad vial");
+    expect(auditLog[0].interactions).toHaveLength(2);
+    expect(auditLog[0].interactions[0].agent).toBe("router-agent");
+    expect(auditLog[0].interactions[1].response).toBe("{...}");
+  });
+
+  it("togglePanel alterna y closePanel cierra el dock derecho", () => {
+    useCopilotStore.getState().togglePanel("memory");
+    expect(useCopilotStore.getState().rightPanel).toBe("memory");
+    useCopilotStore.getState().togglePanel("audit");
+    expect(useCopilotStore.getState().rightPanel).toBe("audit");
+    useCopilotStore.getState().togglePanel("audit"); // el mismo panel lo cierra
+    expect(useCopilotStore.getState().rightPanel).toBe("none");
+    useCopilotStore.getState().togglePanel("memory");
+    useCopilotStore.getState().closePanel();
+    expect(useCopilotStore.getState().rightPanel).toBe("none");
   });
 });

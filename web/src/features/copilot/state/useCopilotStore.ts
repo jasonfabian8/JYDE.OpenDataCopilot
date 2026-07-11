@@ -6,7 +6,49 @@ import {
   type ChatCategory,
   type ChatEvent,
   type ChatSource,
+  type ChatTable,
 } from "../../../shared/api/client.ts";
+
+/** Artefacto de tabla en el panel de artefactos. */
+export interface TableArtifact {
+  readonly id: string;
+  readonly kind: "table";
+  readonly title: string;
+  readonly columns: ReadonlyArray<string>;
+  readonly rows: ReadonlyArray<ReadonlyArray<string>>;
+}
+
+/** Artefacto de gráfico (lleva su propia copia de los datos para dibujarse). */
+export interface ChartArtifact {
+  readonly id: string;
+  readonly kind: "chart";
+  readonly title: string;
+  readonly type: string;
+  readonly xColumn: string;
+  readonly yColumn: string;
+  readonly columns: ReadonlyArray<string>;
+  readonly rows: ReadonlyArray<ReadonlyArray<string>>;
+}
+
+/** Artefacto mostrado en el panel lateral (tabla o gráfico). */
+export type Artifact = TableArtifact | ChartArtifact;
+
+/** Panel derecho activo (acoplado; excluyentes). "none" = ninguno. */
+export type RightPanel = "none" | "memory" | "artifacts" | "audit";
+
+/** Interacción cruda con un agente (auditoría). */
+export interface AuditInteraction {
+  readonly agent: string;
+  readonly request: string;
+  readonly response: string;
+}
+
+/** Entrada de auditoría de un turno: el mensaje del usuario y las interacciones de los agentes. */
+export interface AuditEntry {
+  readonly id: string;
+  readonly userMessage: string;
+  readonly interactions: ReadonlyArray<AuditInteraction>;
+}
 
 /** Mensaje de una conversación del Copilot. */
 export interface CopilotMessage {
@@ -22,6 +64,12 @@ export interface CopilotMessage {
   readonly categories?: ReadonlyArray<ChatCategory>;
   /** Consulta a reintentar tras cargar una categoría. */
   readonly query?: string;
+}
+
+/** Dataset que el usuario mantiene seleccionado (memoria de la conversación). */
+export interface SelectedDataset {
+  readonly id: string;
+  readonly name: string;
 }
 
 /** Una conversación (hilo) mantenida en memoria durante la sesión actual. */
@@ -63,6 +111,18 @@ interface CopilotState {
   readonly loadingCategory: string | null;
   /** Categorías cargadas durante la sesión (para deshabilitar botones ya cargados). */
   readonly loadedCategories: ReadonlyArray<string>;
+  /** Objetivo acumulado de la conversación (memoria); lo actualiza el backend y es editable. */
+  readonly objective: string;
+  /** Datasets que el usuario mantiene seleccionados (memoria). */
+  readonly selectedDatasets: ReadonlyArray<SelectedDataset>;
+  /** Artefactos generados (tablas y gráficos) para el panel lateral. */
+  readonly artifacts: ReadonlyArray<Artifact>;
+  /** Bitácora de auditoría: interacciones crudas por turno. */
+  readonly auditLog: ReadonlyArray<AuditEntry>;
+  /** Panel derecho acoplado activo (memoria / artefactos / auditoría / ninguno). */
+  readonly rightPanel: RightPanel;
+  /** Última tabla del turno en curso (para asociarle un gráfico). */
+  readonly streamingTable: ChatTable | null;
   /** Último error, si lo hubo. */
   readonly error: string | null;
   /** Actualiza el texto de entrada. */
@@ -75,6 +135,18 @@ interface CopilotState {
   readonly send: () => Promise<void>;
   /** Carga una categoría (ingesta + reindexado) y reintenta la consulta original. */
   readonly loadCategoryAndRetry: (categoryName: string, query: string) => Promise<void>;
+  /** Edita manualmente el objetivo (memoria). */
+  readonly setObjective: (value: string) => void;
+  /** Agrega un dataset a los seleccionados (si no está ya). */
+  readonly pinDataset: (dataset: SelectedDataset) => void;
+  /** Quita un dataset de los seleccionados. */
+  readonly unpinDataset: (id: string) => void;
+  /** Limpia la memoria (objetivo y datasets seleccionados). */
+  readonly clearMemory: () => void;
+  /** Alterna el panel derecho indicado (si ya está abierto, lo cierra). */
+  readonly togglePanel: (panel: RightPanel) => void;
+  /** Cierra el panel derecho. */
+  readonly closePanel: () => void;
 }
 
 function newConversationRecord(): Conversation {
@@ -97,6 +169,12 @@ export function initialCopilotState(): Pick<
   | "streamingQuery"
   | "loadingCategory"
   | "loadedCategories"
+  | "objective"
+  | "selectedDatasets"
+  | "artifacts"
+  | "auditLog"
+  | "rightPanel"
+  | "streamingTable"
   | "error"
 > {
   const conversation: Conversation = newConversationRecord();
@@ -112,6 +190,12 @@ export function initialCopilotState(): Pick<
     streamingQuery: null,
     loadingCategory: null,
     loadedCategories: [],
+    objective: "",
+    selectedDatasets: [],
+    artifacts: [],
+    auditLog: [],
+    rightPanel: "none",
+    streamingTable: null,
     error: null,
   };
 }
@@ -184,14 +268,23 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
         streamingSources: null,
         streamingCategories: null,
         streamingQuery: null,
+        streamingTable: null,
         error: null,
       });
 
       const threadId: string | null =
         get().conversations.find((c) => c.id === activeId)?.threadId ?? null;
       const controller: AbortController = new AbortController();
+      const selectedNames: string[] = get().selectedDatasets.map((dataset) => dataset.name);
+      // Contexto de enrutamiento: la respuesta anterior del Copilot (para desambiguar un "sí").
+      const priorMessages: ReadonlyArray<CopilotMessage> =
+        get().conversations.find((c) => c.id === activeId)?.messages ?? [];
+      const routeContext: string =
+        [...priorMessages].reverse().find((message) => message.role === "assistant")?.content.slice(0, 800) ?? "";
       try {
-        for await (const event of chatApi.stream(question, threadId, controller.signal)) {
+        for await (const event of chatApi.stream(
+          question, threadId, controller.signal, get().objective, selectedNames, routeContext,
+        )) {
           applyEvent(event);
         }
 
@@ -231,6 +324,43 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
           case "categories":
             set({ streamingCategories: event.categories, streamingQuery: event.query });
             break;
+          case "objective":
+            set({ objective: event.objective });
+            break;
+          case "table": {
+            const table: TableArtifact = {
+              id: crypto.randomUUID(),
+              kind: "table",
+              title: event.table.title,
+              columns: event.table.columns,
+              rows: event.table.rows,
+            };
+            set({ streamingTable: event.table, artifacts: [...get().artifacts, table], rightPanel: "artifacts" });
+            break;
+          }
+          case "chart": {
+            const source: ChatTable | null = get().streamingTable;
+            const chart: ChartArtifact = {
+              id: crypto.randomUUID(),
+              kind: "chart",
+              title: event.chart.title,
+              type: event.chart.type,
+              xColumn: event.chart.xColumn,
+              yColumn: event.chart.yColumn,
+              columns: source?.columns ?? [],
+              rows: source?.rows ?? [],
+            };
+            set({ artifacts: [...get().artifacts, chart], rightPanel: "artifacts" });
+            break;
+          }
+          case "audit":
+            set({
+              auditLog: [
+                ...get().auditLog,
+                { id: crypto.randomUUID(), userMessage: question, interactions: event.interactions },
+              ],
+            });
+            break;
           case "token":
             set({ streamingAnswer: get().streamingAnswer + event.text });
             break;
@@ -262,5 +392,23 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
         set({ loadingCategory: null, status: "error", error: describe(error) });
       }
     },
+
+    setObjective: (value: string): void => set({ objective: value }),
+
+    pinDataset: (dataset: SelectedDataset): void => {
+      if (get().selectedDatasets.some((selected) => selected.id === dataset.id)) {
+        return;
+      }
+      set({ selectedDatasets: [...get().selectedDatasets, dataset] });
+    },
+
+    unpinDataset: (id: string): void =>
+      set({ selectedDatasets: get().selectedDatasets.filter((selected) => selected.id !== id) }),
+
+    clearMemory: (): void => set({ objective: "", selectedDatasets: [] }),
+
+    togglePanel: (panel: RightPanel): void => set({ rightPanel: get().rightPanel === panel ? "none" : panel }),
+
+    closePanel: (): void => set({ rightPanel: "none" }),
   };
 });
