@@ -19,6 +19,17 @@ no usa tags todavía; los números son una propuesta retroactiva del equipo.
 - Reestructuración documental alineada con la guía del concurso: `data/`, `models/`,
   `docs/requirements/`, `docs/estructura_repositorio.md` y documentos de problema, metodología,
   fuentes, API, impacto, conclusiones y validación.
+- **Módulo `reports/`** (salda la deuda TD-003): `generar_reporte.py` produce
+  `reporte_final.pdf` + `reports/figures/` (categorías del catálogo, relevancia de fuentes
+  citadas, distribución de agentes según auditoría, latencias y métricas de ingeniería)
+  consumiendo el **sistema real** por sus endpoints (`/catalog/*`, `/chat` SSE) —
+  regenerable con datos frescos en cada corrida.
+- **`resources/portada.png`** (salda la deuda TD-002): diapositiva principal de la
+  presentación exportada a 1920×1080.
+- **Demo automatizada `demo/`**: grabación reproducible con Playwright
+  (`record-demo.js`) sobre el sistema con IA real + narración TTS en español
+  (`narrar.py`), video final `OpenDataCopilot_Demo_ID241.mp4` (1080p) y capturas
+  Full HD para la presentación.
 
 ---
 

@@ -33,7 +33,7 @@ proyecto Python/ML como el del ejemplo). Donde la carpeta sugerida no aplica tal
 
 | Estructura sugerida (concurso) | En este repositorio | Notas |
 |---|---|---|
-| `RECURSOS/` (pptx, pdf, portada) | [`resources/`](../resources/) | Mismo propósito, nombre en minúsculas. Contiene la presentación en `.pptx` y `.pdf`. La portada está pendiente (ver [tech-debt](tech-debt.md)). |
+| `RECURSOS/` (pptx, pdf, portada) | [`resources/`](../resources/) | ✔ Mismo propósito, nombre en minúsculas. Contiene la presentación en `.pptx` y `.pdf`, y `portada.png` (diapositiva principal, 1920×1080). |
 | `README.md` (ficha técnica y resultados) | [`README.md`](../README.md) | Incluye problema, solución, funcionalidades, ficha técnica y resultados validados. |
 | `LICENSE` | [`LICENSE`](../LICENSE) | MIT. |
 | `.gitignore` | [`.gitignore`](../.gitignore) | ✔ |
@@ -52,7 +52,7 @@ proyecto Python/ML como el del ejemplo). Donde la carpeta sugerida no aplica tal
 | `notebooks/` | *(no aplica)* | No hay flujo de notebooks: la exploración y el análisis los ejecutan los agentes de IA en runtime (p. ej. el agente de cifras genera y ejecuta SoQL). |
 | `src/` (agents, data_pipeline, features…) | [`src/`](../src/) | Backend .NET por capas hexagonales. Los **agentes** viven en `src/JYDE.OpenDataCopilot.Application/Conversation/`; la **ingesta** (equivalente a `data_pipeline/`) en los casos de uso de `Catalog`/`Search` y los adaptadores `Socrata*`/`Mongo*` de Infrastructure. |
 | `models/` (predictive, llm_rag, simulation) | [`models/`](../models/README.md) | No hay modelos entrenados localmente: los modelos LLM/embeddings se consumen y **versionan en Azure AI Foundry** ([ADR-0004](adr/0004-azure-foundry-gpt41mini.md)). La carpeta documenta cada agente (equivale a `llm_rag/`): modelo, versión, rol y prompts. |
-| `reports/` (figures, reporte_final.pdf) | README (resultados) + [`docs/conclusiones.md`](conclusiones.md) + [`resources/`](../resources/) | Los "resultados visibles" son la demo, la presentación y las conclusiones. El reporte final en PDF está pendiente (ver [tech-debt](tech-debt.md)). |
+| `reports/` (figures, reporte_final.pdf) | [`reports/`](../reports/README.md) | ✔ `reports/figures/` (visualizaciones) + `reports/reporte_final.pdf`, generados automáticamente por `reports/generar_reporte.py` consumiendo el sistema real (catálogo, agentes, RAG y auditoría vía API) — regenerable en cualquier momento. |
 | `tests/` (unit, integration, bias_tests) | [`tests/`](../tests/) | Convención .NET: un proyecto de prueba **por capa** (`*.Domain.Tests`, `*.Application.Tests`, `*.Infrastructure.Tests`, `*.Api.Tests`) + Vitest en `web/`. El equivalente a `bias_tests/` son los **guardrails verificados por tests**: sin fuente no hay respuesta, nunca se inventan cifras (ver [ADR-0015](adr/0015-arquitectura-multiagente.md)). |
 | `.github/workflows/` (CI + cron de datos) | [`.github/workflows/`](../.github/workflows/) | `sonarcloud.yml`: build + tests + cobertura + análisis SonarCloud en cada push/PR. No hay cron de ingesta: la ingesta es **bajo demanda** por categorías desde la propia app (`POST /catalog/ingest`). |
 | `config/` | `src/JYDE.OpenDataCopilot.Api/appsettings*.json` | Configuración .NET por proyecto. La selección de proveedores (`Providers`) permite intercambiar adaptadores sin tocar código ([ADR-0003](adr/0003-ports-adapters-intercambiables.md)); los agentes y sus versiones se configuran en `Foundry:Chat:Agents`. |
