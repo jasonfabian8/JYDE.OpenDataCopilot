@@ -4,12 +4,7 @@ Registro cronológico de versiones del proyecto. Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versionamiento
 [SemVer](https://semver.org/lang/es/) `0.x` (producto en desarrollo pre-1.0).
 
-Las versiones se reconstruyeron del historial de git: **una versión por pull request integrado a
-`main`** (`git log origin/main --first-parent`); la evolución de los agentes de IA se trazó con el
-historial de `src/JYDE.OpenDataCopilot.Api/appsettings.json → Foundry:Chat:Agents`. El repositorio
-no usa tags todavía; los números son una propuesta retroactiva del equipo.
-
-## [Unreleased] — rama `feature/copilot`
+## [0.7.0] — **Persistencia de conversaciones y entregables del concurso**
 
 ### Added
 - **Persistencia de conversaciones** ([ADR-0017](docs/adr/0017-persistencia-conversaciones.md)):
@@ -31,12 +26,11 @@ no usa tags todavía; los números son una propuesta retroactiva del equipo.
   (`narrar.py`), video final `OpenDataCopilot_Demo_ID241.mp4` (1080p) y capturas
   Full HD para la presentación.
 
----
-
-## [0.6.2] — PR [#9](../../pull/9)
-
 ### Changed
-- README revisado: descripción del proyecto mejorada.
+- Refinamiento de los **system prompts** de los seis agentes (`models/*.md`): instrucciones
+  más claras y guía de comportamiento para `router`, `category-recommender`,
+  `dataset-recommender`, `dataset-analyst`, `figures` y `objective-tracker`.
+
 
 ## [0.6.1] — PR [#8](../../pull/8)
 
@@ -156,4 +150,4 @@ reales, artefactos, memoria y auditoría, con su aplicación web estilo copiloto
 ### Added
 - Repositorio inicial y primer `README.md` con la visión del proyecto.
 
-[Unreleased]: ../../compare/main...feature/copilot
+[0.7.0]: ../../compare/main...feature/docs
