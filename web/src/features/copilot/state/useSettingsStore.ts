@@ -140,7 +140,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const result = await catalogApi.ingest({});
       set({
         phase: "ok",
-        message: `Ingeridos ${result.datasetsIngested} datasets (todo el catálogo). Reconstruye el índice para que la búsqueda los use.`,
+        message: `Ingeridos ${result.datasetsIngested} datasets (catálogo completo). Reconstruye el índice para que la búsqueda los use.`,
       });
       await get().refreshCount();
     } catch (error: unknown) {

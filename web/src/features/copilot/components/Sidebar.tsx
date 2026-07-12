@@ -102,7 +102,7 @@ export function Sidebar({
                 >
                   <button
                     type="button"
-                    onClick={(): void => void selectConversation(conversation.id)}
+                    onClick={(): void => { selectConversation(conversation.id); }}
                     disabled={isStreaming}
                     className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-sm disabled:cursor-not-allowed"
                   >

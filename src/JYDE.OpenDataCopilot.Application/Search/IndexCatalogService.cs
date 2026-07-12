@@ -41,7 +41,7 @@ public sealed class IndexCatalogService
         _batchSize = batchSize;
     }
 
-    /// <summary>Indexa todo el catálogo almacenado, generando los embeddings por lote.</summary>
+    /// <summary>Indexa el catálogo completo almacenado, generando los embeddings por lote.</summary>
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <returns>Cantidad de datasets indexados.</returns>
     public async Task<int> ExecuteAsync(CancellationToken cancellationToken = default)

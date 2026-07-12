@@ -33,7 +33,7 @@ public sealed class CatalogController : ControllerBase
     }
 
     /// <summary>Ingiere el catálogo de datasets desde la fuente configurada.</summary>
-    /// <param name="request">Filtro opcional (categorías, límite). Cuerpo vacío = todo el catálogo.</param>
+    /// <param name="request">Filtro opcional (categorías, límite). Cuerpo vacío = catálogo completo.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <returns>Resumen con la cantidad de datasets ingeridos.</returns>
     [HttpPost("ingest")]

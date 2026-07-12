@@ -8,8 +8,8 @@
  * Salida: ./out/video.webm + ./out/capturas/*.png
  */
 const { chromium } = require("playwright");
-const path = require("path");
-const fs = require("fs");
+const path = require("node:path");
+const fs = require("node:fs");
 
 const BASE = "http://localhost:5191";
 const OUT = path.join(__dirname, "out");
