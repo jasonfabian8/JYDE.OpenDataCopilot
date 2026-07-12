@@ -125,7 +125,7 @@ export function SettingsModal(): ReactElement | null {
               disabled={running}
               className="w-full rounded-lg bg-sky px-4 py-2.5 font-medium text-night transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {running ? "Trabajando…" : "Cargar todo el catálogo"}
+              {running ? "Trabajando…" : "Cargar el catálogo completo"}
             </button>
 
             <div className="flex items-center justify-between pt-1">
@@ -157,7 +157,7 @@ export function SettingsModal(): ReactElement | null {
           <section className="space-y-3 border-t border-night-line pt-5">
             <h3 className="font-medium text-night-ink">Índice de búsqueda</h3>
             <p className="text-sm leading-relaxed text-night-soft">
-              Regenera los embeddings de todo lo almacenado (por lote) para que la búsqueda semántica los use.
+              Regenera los embeddings completamente de lo almacenado (por lote) para que la búsqueda semántica los use.
             </p>
             <button
               type="button"

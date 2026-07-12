@@ -75,7 +75,7 @@ describe("useSettingsStore", () => {
     expect(useSettingsStore.getState().phase).toBe("error");
   });
 
-  it("ingestAll carga todo el catálogo (body vacío)", async () => {
+  it("ingestAll carga el catálogo completo (body vacío)", async () => {
     catalog.ingest.mockResolvedValue({ datasetsIngested: 10000 });
     catalog.count.mockResolvedValue({ count: 10000 });
 
