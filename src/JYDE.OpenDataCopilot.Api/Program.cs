@@ -10,17 +10,22 @@ using JYDE.OpenDataCopilot.Infrastructure.Foundry;
 using JYDE.OpenDataCopilot.Infrastructure.Mongo;
 using JYDE.OpenDataCopilot.Infrastructure.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Socrata;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 
 const string WebCorsPolicy = "web";
+const string CorsAllowedOriginsSection = "Cors:AllowedOrigins";
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// CORS para el frontend (en desarrollo se usa además un proxy de Vite).
+// CORS para el frontend: en Development se acepta cualquier origen (desarrollo local); fuera de
+// Development se restringe a los orígenes declarados en `Cors:AllowedOrigins` (ver ConfigureCorsPolicy).
+string[] corsAllowedOrigins =
+    builder.Configuration.GetSection(CorsAllowedOriginsSection).Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddPolicy(
     WebCorsPolicy,
-    policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+    policy => ConfigureCorsPolicy(policy, builder.Environment, corsAllowedOrigins)));
 
 // Opciones compartidas.
 SocrataCatalogOptions socrataOptions =
@@ -209,3 +214,21 @@ static bool IsFoundry(string provider) => string.Equals(provider, "Foundry", Str
 static bool AnyMongo(params string[] providers) => Array.Exists(providers, IsMongo);
 
 static bool AnyFoundry(params string[] providers) => Array.Exists(providers, IsFoundry);
+
+// En Development se acepta cualquier origen (desarrollo local); fuera de Development sólo los
+// orígenes declarados en configuración. AllowAnyOrigin no admite credenciales, coherente con el
+// frontend (peticiones sin cookies).
+static void ConfigureCorsPolicy(
+    CorsPolicyBuilder policy, IWebHostEnvironment environment, string[] allowedOrigins)
+{
+    policy.AllowAnyHeader().AllowAnyMethod();
+    if (environment.IsDevelopment())
+    {
+        policy.AllowAnyOrigin();
+        Console.WriteLine("CORS: Development mode, allowing any origin.");
+    }
+    else
+    {
+        policy.WithOrigins(allowedOrigins);
+    }
+}
