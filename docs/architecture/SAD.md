@@ -100,6 +100,9 @@ Api ──► Infrastructure ──► Application ──► Domain
 
 ## 6. Diagramas C4
 
+> Diagramas complementarios (DDD, integración de agentes, secuencia multiagente, clases, estados
+> y despliegue) en [`diagramas.md`](diagramas.md).
+
 ### Nivel 1 — Contexto del sistema
 
 ```mermaid
@@ -127,8 +130,8 @@ C4Container
     Container_Boundary(odc, "OpenData Copilot") {
         Container(web, "Web App", "React + Vite", "Chat UI, fuentes y visualizaciones")
         Container(api, "API", ".NET / ASP.NET Core", "Endpoints de chat e ingesta; composition root")
-        ContainerDb(index, "Índice de búsqueda", "pgvector / Azure AI Search / Qdrant", "Metadatos + vectores")
-        ContainerDb(cache, "Cache de datos", "DuckDB/Postgres / MongoDB Atlas", "Datasets cacheados + conversaciones")
+        ContainerDb(index, "Índice de búsqueda", "MongoDB Atlas Vector Search (InMemory en dev)", "Metadatos + vectores")
+        ContainerDb(cache, "Almacén de datos", "MongoDB Atlas (InMemory en dev)", "Catálogo + conversaciones")
     }
 
     Rel(ciudadano, web, "Usa", "HTTPS")
@@ -155,8 +158,8 @@ C4Component
         Component(pCache, "IDatasetCache", "Puerto", "Cache")
         Component(pCatSrc, "ICatalogSource", "Puerto", "Fuente de catálogo")
 
-        Component(aSearch, "PgVector/AzureAISearch/Qdrant", "Adaptador")
-        Component(aEmbed, "FoundryEmbeddings", "Adaptador")
+        Component(aSearch, "InMemory/MongoAtlasVectorSearch", "Adaptador")
+        Component(aEmbed, "LocalHashing/FoundryEmbeddings", "Adaptador")
         Component(aChat, "FoundryChatCompletion", "Adaptador")
         Component(aData, "SocrataDataQuery", "Adaptador")
         Component(aCat, "SocrataCatalogClient", "Adaptador")
@@ -180,6 +183,10 @@ C4Component
 ---
 
 ## 7. Flujo de una consulta (runtime)
+
+> Vista conceptual por puertos. La secuencia **multiagente** completa (router, agentes, memoria,
+> auditoría — [ADR-0015](../adr/0015-arquitectura-multiagente.md)) está en
+> [`diagramas.md §4`](diagramas.md#4-secuencia-de-una-conversación).
 
 ```mermaid
 sequenceDiagram
@@ -214,10 +221,10 @@ sequenceDiagram
 // appsettings.json (Api). Local por defecto = gratis; producción se sobreescribe por entorno.
 {
   "Providers": {
-    "SearchIndex": "PgVector",       // PgVector | AzureAISearch | Qdrant
-    "DatasetCache": "DuckDb",        // DuckDb | Postgres | MongoAtlas
-    "Chat": "Foundry",
-    "Embeddings": "Foundry",
+    "CatalogRepository": "InMemory", // InMemory (dev, $0) | Mongo (Atlas) — ver ADR-0012
+    "SearchIndex": "InMemory",       // InMemory (dev, $0) | Mongo (Atlas Vector Search) — ver ADR-0014
+    "Embeddings": "Local",           // Local (hashing, $0) | Foundry (text-embedding-3-small) — ver ADR-0013
+    "Chat": "Fake",                  // Fake (dev, $0) | Foundry (agentes versionados) — ver ADR-0004/0015
     "ConversationStore": "InMemory"  // InMemory (dev, $0) | Mongo (Atlas) — ver ADR-0017
   }
 }
