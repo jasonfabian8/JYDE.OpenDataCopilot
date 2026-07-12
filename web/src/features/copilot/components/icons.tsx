@@ -130,3 +130,32 @@ export function AuditIcon({ className }: IconProps): ReactElement {
     </LineIcon>
   );
 }
+
+/** Disquete (guardar en la base de datos). */
+export function SaveIcon({ className }: IconProps): ReactElement {
+  return (
+    <LineIcon className={className}>
+      <path d="M5 3h11l3 3v15H5zM8 3v5h7V3M8 14h8v7H8z" />
+    </LineIcon>
+  );
+}
+
+/** Papelera (eliminar). */
+export function TrashIcon({ className }: IconProps): ReactElement {
+  return (
+    <LineIcon className={className}>
+      <path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6" />
+    </LineIcon>
+  );
+}
+
+/** Tres puntos verticales (menú de acciones). */
+export function KebabIcon({ className }: IconProps): ReactElement {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <circle cx="12" cy="5" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="12" cy="19" r="1.6" />
+    </svg>
+  );
+}

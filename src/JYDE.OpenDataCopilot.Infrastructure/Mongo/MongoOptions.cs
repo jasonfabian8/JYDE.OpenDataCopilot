@@ -15,6 +15,9 @@ public sealed class MongoOptions
     /// <summary>Colección donde se almacena el catálogo de datasets.</summary>
     public string CatalogCollection { get; set; } = "datasets";
 
+    /// <summary>Colección donde se almacenan las conversaciones (transcripción + memoria + artefactos + auditoría).</summary>
+    public string ConversationCollection { get; set; } = "conversations";
+
     /// <summary>Colección donde se almacenan los vectores para la búsqueda.</summary>
     public string SearchCollection { get; set; } = "dataset_vectors";
 

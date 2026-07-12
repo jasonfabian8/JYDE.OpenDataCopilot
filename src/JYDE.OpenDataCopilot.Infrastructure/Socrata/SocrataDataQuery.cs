@@ -83,7 +83,7 @@ public sealed class SocrataDataQuery : IDataQuery
     /// <param name="item">Objeto JSON de la respuesta (una fila del resultado).</param>
     /// <param name="columns">Columnas conocidas (define el orden y las claves a leer).</param>
     /// <returns>Los valores de la fila como texto; cadena vacía si falta la propiedad.</returns>
-    private static IReadOnlyList<string> BuildRow(JsonElement item, IReadOnlyList<string> columns)
+    private static List<string> BuildRow(JsonElement item, List<string> columns)
     {
         List<string> row = new(columns.Count);
         foreach (string column in columns)

@@ -4,6 +4,7 @@ using JYDE.OpenDataCopilot.Application.Figures;
 using JYDE.OpenDataCopilot.Application.Search;
 using JYDE.OpenDataCopilot.Infrastructure.Catalog;
 using JYDE.OpenDataCopilot.Infrastructure.Chat;
+using JYDE.OpenDataCopilot.Infrastructure.Conversation;
 using JYDE.OpenDataCopilot.Infrastructure.Embeddings;
 using JYDE.OpenDataCopilot.Infrastructure.Foundry;
 using JYDE.OpenDataCopilot.Infrastructure.Mongo;
@@ -36,9 +37,10 @@ string catalogRepository = builder.Configuration["Providers:CatalogRepository"] 
 string searchIndex = builder.Configuration["Providers:SearchIndex"] ?? "InMemory";
 string embeddingsProvider = builder.Configuration["Providers:Embeddings"] ?? "Local";
 string chatProvider = builder.Configuration["Providers:Chat"] ?? "Fake";
+string conversationStore = builder.Configuration["Providers:ConversationStore"] ?? "InMemory";
 
 // Cliente Mongo ÚNICO compartido por los adaptadores Mongo (el cliente gestiona el pool).
-if (IsMongo(catalogRepository) || IsMongo(searchIndex))
+if (IsMongo(catalogRepository) || IsMongo(searchIndex) || IsMongo(conversationStore))
 {
     builder.Services.AddSingleton<MongoContext>();
 }
@@ -98,6 +100,20 @@ else
 
 builder.Services.AddTransient<IndexCatalogService>();
 builder.Services.AddTransient<SearchDatasetsService>();
+
+// Archivo de conversaciones (persistencia, ver ADR-0017): InMemory (por defecto, $0) o Mongo (Atlas),
+// elegible por `Providers:ConversationStore`. El guardado es manual (lo dispara el usuario).
+if (IsMongo(conversationStore))
+{
+    builder.Services.AddSingleton<IConversationStore, MongoConversationStore>();
+}
+else
+{
+    builder.Services.AddSingleton<IConversationStore, InMemoryConversationStore>();
+}
+
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddTransient<ConversationArchiveService>();
 
 // Conversación (Copilot multiagente, ver ADR-0015). LLM: Fake ($0) o Foundry (agentes publicados),
 // envuelto por un decorador de auditoría que registra cada interacción (para el panel de auditoría).
