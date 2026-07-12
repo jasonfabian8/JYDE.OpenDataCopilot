@@ -144,7 +144,7 @@ interface CopilotState {
   /** Inicia una conversación nueva (hilo vacío) y la activa. */
   readonly newConversation: () => void;
   /** Cambia la conversación activa. */
-  readonly selectConversation: (id: string) => void;
+  readonly selectConversation: (id: string) => Promise<void>;
   /** Envía la pregunta actual y transmite la respuesta. */
   readonly send: () => Promise<void>;
   /** Carga una categoría (ingesta + reindexado) y reintenta la consulta original. */
@@ -367,7 +367,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => {
       }
       let target: Conversation | undefined = get().conversations.find((c) => c.id === id);
       // Resumen persistido aún sin hidratar: traemos su contenido completo de la BD.
-      if (target !== undefined && target.persisted === true && target.hydrated === false) {
+      if (target?.persisted === true && target?.hydrated === false) {
         try {
           const hydrated: Conversation = fromRecordDto(await conversationsApi.get(id));
           set({ conversations: get().conversations.map((c) => (c.id === id ? hydrated : c)) });

@@ -40,13 +40,13 @@ string chatProvider = builder.Configuration["Providers:Chat"] ?? "Fake";
 string conversationStore = builder.Configuration["Providers:ConversationStore"] ?? "InMemory";
 
 // Cliente Mongo ÚNICO compartido por los adaptadores Mongo (el cliente gestiona el pool).
-if (IsMongo(catalogRepository) || IsMongo(searchIndex) || IsMongo(conversationStore))
+if (AnyMongo(catalogRepository, searchIndex, conversationStore))
 {
     builder.Services.AddSingleton<MongoContext>();
 }
 
 // Opciones de Foundry (compartidas por chat y embeddings); se registran una sola vez.
-if (IsFoundry(embeddingsProvider) || IsFoundry(chatProvider))
+if (AnyFoundry(embeddingsProvider, chatProvider))
 {
     FoundryOptions foundryOptions =
         builder.Configuration.GetSection(FoundryOptions.SectionName).Get<FoundryOptions>() ?? new FoundryOptions();
@@ -205,3 +205,7 @@ await app.RunAsync();
 static bool IsMongo(string provider) => string.Equals(provider, "Mongo", StringComparison.OrdinalIgnoreCase);
 
 static bool IsFoundry(string provider) => string.Equals(provider, "Foundry", StringComparison.OrdinalIgnoreCase);
+
+static bool AnyMongo(params string[] providers) => Array.Exists(providers, IsMongo);
+
+static bool AnyFoundry(params string[] providers) => Array.Exists(providers, IsFoundry);

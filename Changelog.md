@@ -150,4 +150,3 @@ reales, artefactos, memoria y auditoría, con su aplicación web estilo copiloto
 ### Added
 - Repositorio inicial y primer `README.md` con la visión del proyecto.
 
-[0.7.0]: ../../compare/main...feature/docs
